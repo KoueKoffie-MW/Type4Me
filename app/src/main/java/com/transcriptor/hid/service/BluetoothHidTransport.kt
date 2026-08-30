@@ -16,14 +16,20 @@ import kotlinx.coroutines.flow.asStateFlow
 import java.util.concurrent.Executor
 
 /**
- * Universal 63-byte HID Keyboard Report Descriptor.
+ * Universal Composite HID Report Descriptor for Keyboard (Report ID 1) and Mouse (Report ID 2).
  * Conforms strictly to USB HID 1.11 and Bluetooth HID Profile 1.0/1.1 specifications.
- * Defines standard 8-byte input report (Boot Keyboard compatible) and 1-byte LED output report (Report ID 0).
+ * Defines:
+ * - Report ID 1: Standard 8-byte Keyboard input report + 1-byte LED output report.
+ * - Report ID 2: 4-byte Relative Mouse input report ([Buttons, dX, dY, Wheel]).
  */
-val HID_KEYBOARD_REPORT_DESCRIPTOR: ByteArray = byteArrayOf(
+val HID_COMBO_REPORT_DESCRIPTOR: ByteArray = byteArrayOf(
+    // ------------------------------------------------------------------------
+    // KEYBOARD (Report ID 1)
+    // ------------------------------------------------------------------------
     0x05.toByte(), 0x01.toByte(), // USAGE_PAGE (Generic Desktop Ctrls: 0x01)
     0x09.toByte(), 0x06.toByte(), // USAGE (Keyboard: 0x06)
     0xA1.toByte(), 0x01.toByte(), // COLLECTION (Application: 0x01)
+    0x85.toByte(), 0x01.toByte(), //   REPORT_ID (1)
     0x05.toByte(), 0x07.toByte(), //   USAGE_PAGE (Kbrd/Keypad: 0x07)
     0x19.toByte(), 0xE0.toByte(), //   USAGE_MINIMUM (Keyboard LeftControl: 0xE0)
     0x29.toByte(), 0xE7.toByte(), //   USAGE_MAXIMUM (Keyboard Right GUI: 0xE7)
@@ -52,17 +58,56 @@ val HID_KEYBOARD_REPORT_DESCRIPTOR: ByteArray = byteArrayOf(
     0x19.toByte(), 0x00.toByte(), //   USAGE_MINIMUM (0x00 - No event)
     0x29.toByte(), 0x65.toByte(), //   USAGE_MAXIMUM (0x65 - Application/Menu)
     0x81.toByte(), 0x00.toByte(), //   INPUT (Data, Array, Absolute) -> [Bytes 2..7: 6-Key Rollover Array]
-    0xC0.toByte()                 // END_COLLECTION
+    0xC0.toByte(),                 // END_COLLECTION
+
+    // ------------------------------------------------------------------------
+    // MOUSE (Report ID 2)
+    // ------------------------------------------------------------------------
+    0x05.toByte(), 0x01.toByte(), // USAGE_PAGE (Generic Desktop Ctrls: 0x01)
+    0x09.toByte(), 0x02.toByte(), // USAGE (Mouse: 0x02)
+    0xA1.toByte(), 0x01.toByte(), // COLLECTION (Application: 0x01)
+    0x85.toByte(), 0x02.toByte(), //   REPORT_ID (2)
+    0x09.toByte(), 0x01.toByte(), //   USAGE (Pointer: 0x01)
+    0xA1.toByte(), 0x00.toByte(), //   COLLECTION (Physical: 0x00)
+    0x05.toByte(), 0x09.toByte(), //     USAGE_PAGE (Button: 0x09)
+    0x19.toByte(), 0x01.toByte(), //     USAGE_MINIMUM (Button 1: Left: 0x01)
+    0x29.toByte(), 0x03.toByte(), //     USAGE_MAXIMUM (Button 3: Middle: 0x03)
+    0x15.toByte(), 0x00.toByte(), //     LOGICAL_MINIMUM (0)
+    0x25.toByte(), 0x01.toByte(), //     LOGICAL_MAXIMUM (1)
+    0x75.toByte(), 0x01.toByte(), //     REPORT_SIZE (1 bit)
+    0x95.toByte(), 0x03.toByte(), //     REPORT_COUNT (3 fields -> 3 buttons)
+    0x81.toByte(), 0x02.toByte(), //     INPUT (Data, Variable, Absolute) -> [Bits 0-2: Left/Right/Middle]
+    0x75.toByte(), 0x05.toByte(), //     REPORT_SIZE (5 bits)
+    0x95.toByte(), 0x01.toByte(), //     REPORT_COUNT (1 field)
+    0x81.toByte(), 0x01.toByte(), //     INPUT (Constant, Array, Absolute) -> [Bits 3-7: Padding]
+    0x05.toByte(), 0x01.toByte(), //     USAGE_PAGE (Generic Desktop Ctrls: 0x01)
+    0x09.toByte(), 0x30.toByte(), //     USAGE (X: 0x30)
+    0x09.toByte(), 0x31.toByte(), //     USAGE (Y: 0x31)
+    0x15.toByte(), 0x81.toByte(), //     LOGICAL_MINIMUM (-127)
+    0x25.toByte(), 0x7F.toByte(), //     LOGICAL_MAXIMUM (127)
+    0x75.toByte(), 0x08.toByte(), //     REPORT_SIZE (8 bits = 1 byte per axis)
+    0x95.toByte(), 0x02.toByte(), //     REPORT_COUNT (2 fields -> X and Y relative deltas)
+    0x81.toByte(), 0x06.toByte(), //     INPUT (Data, Variable, Relative) -> [dX, dY]
+    0x09.toByte(), 0x38.toByte(), //     USAGE (Wheel: 0x38)
+    0x15.toByte(), 0x81.toByte(), //     LOGICAL_MINIMUM (-127)
+    0x25.toByte(), 0x7F.toByte(), //     LOGICAL_MAXIMUM (127)
+    0x75.toByte(), 0x08.toByte(), //     REPORT_SIZE (8 bits)
+    0x95.toByte(), 0x01.toByte(), //     REPORT_COUNT (1 field -> Wheel delta)
+    0x81.toByte(), 0x06.toByte(), //     INPUT (Data, Variable, Relative) -> [Wheel]
+    0xC0.toByte(),                 //   END_COLLECTION
+    0xC0.toByte()                  // END_COLLECTION
 )
+
+val HID_KEYBOARD_REPORT_DESCRIPTOR: ByteArray get() = HID_COMBO_REPORT_DESCRIPTOR
 
 /**
  * Service Discovery Protocol (SDP) configuration data model.
  */
 data class HidSdpConfiguration(
-    val name: String = "Transcriptor Keyboard",
-    val description: String = "Voice-to-HID Speech Input Companion",
-    val provider: String = "Transcriptor",
-    val subclass: Byte = 0x40.toByte(), // Keyboard
+    val name: String = "Type4Me Keyboard",
+    val description: String = "Voice-to-HID Speech Input & Touchpad Companion",
+    val provider: String = "Type4Me",
+    val subclass: Byte = 0xC0.toByte(), // Combo Keyboard + Mouse
     val descriptors: ByteArray = HID_KEYBOARD_REPORT_DESCRIPTOR
 ) {
     override fun equals(other: Any?): Boolean {
@@ -231,9 +276,17 @@ class BluetoothHidTransport(
 
     companion object {
         const val DEVICE_NAME = "Type4Me Keyboard"
-        const val DEVICE_DESCRIPTION = "Voice-to-HID Speech Input Companion"
+        const val DEVICE_DESCRIPTION = "Voice-to-HID Speech Input & Touchpad Companion"
         const val DEVICE_PROVIDER = "Type4Me"
+        const val REPORT_ID_KEYBOARD = 1
+        const val REPORT_ID_MOUSE = 2
         const val SDP_SUBCLASS_KEYBOARD: Byte = 0x40.toByte() // BluetoothHidDevice.SUBCLASS1_KEYBOARD
+        const val SDP_SUBCLASS_COMBO: Byte = 0xC0.toByte() // BluetoothHidDevice.SUBCLASS1_COMBO (Keyboard + Mouse)
+
+        const val MOUSE_BUTTON_NONE = 0x00
+        const val MOUSE_BUTTON_LEFT = 0x01
+        const val MOUSE_BUTTON_RIGHT = 0x02
+        const val MOUSE_BUTTON_MIDDLE = 0x04
     }
 
     private val _connectionState = MutableStateFlow(HidConnectionState.DISCONNECTED)
@@ -256,20 +309,20 @@ class BluetoothHidTransport(
     private var currentInputReport = ByteArray(8)
 
     /**
-     * The 63-byte Report Descriptor.
+     * The Composite 119-byte Report Descriptor (Keyboard + Mouse).
      */
     val reportDescriptor: ByteArray
-        get() = HID_KEYBOARD_REPORT_DESCRIPTOR
+        get() = HID_COMBO_REPORT_DESCRIPTOR
 
     /**
-     * SDP Settings configuration with Subclass 0x40 (Keyboard) and 63B descriptor.
+     * SDP Settings configuration with Subclass 0xC0 (Combo Keyboard + Mouse) and Composite descriptor.
      */
     val sdpConfig: HidSdpConfiguration = HidSdpConfiguration(
         name = DEVICE_NAME,
         description = DEVICE_DESCRIPTION,
         provider = DEVICE_PROVIDER,
-        subclass = SDP_SUBCLASS_KEYBOARD,
-        descriptors = HID_KEYBOARD_REPORT_DESCRIPTOR
+        subclass = SDP_SUBCLASS_COMBO,
+        descriptors = HID_COMBO_REPORT_DESCRIPTOR
     )
 
     /**
@@ -494,7 +547,31 @@ class BluetoothHidTransport(
 
         currentInputReport = report.copyOf()
         return try {
-            adapter.sendReport(device, 0, report)
+            adapter.sendReport(device, REPORT_ID_KEYBOARD, report)
+        } catch (e: Exception) {
+            false
+        }
+    }
+
+    override suspend fun sendMouseReport(buttons: Int, dx: Int, dy: Int, wheel: Int): Boolean {
+        val device = activeDevice ?: return false
+        val adapter = hidAdapter ?: return false
+
+        if (_connectionState.value != HidConnectionState.CONNECTED) {
+            return false
+        }
+
+        val clampedDx = dx.coerceIn(-127, 127).toByte()
+        val clampedDy = dy.coerceIn(-127, 127).toByte()
+        val clampedWheel = wheel.coerceIn(-127, 127).toByte()
+        val mouseReport = byteArrayOf(
+            buttons.toByte(),
+            clampedDx,
+            clampedDy,
+            clampedWheel
+        )
+        return try {
+            adapter.sendReport(device, REPORT_ID_MOUSE, mouseReport)
         } catch (e: Exception) {
             false
         }
@@ -505,6 +582,13 @@ class BluetoothHidTransport(
      */
     suspend fun sendKeyRelease(): Boolean {
         return sendKeyboardReport(ByteArray(8))
+    }
+
+    /**
+     * Convenience helper to send a mouse button release report.
+     */
+    suspend fun sendMouseRelease(): Boolean {
+        return sendMouseReport(buttons = MOUSE_BUTTON_NONE, dx = 0, dy = 0, wheel = 0)
     }
 
     override suspend fun disconnect() {

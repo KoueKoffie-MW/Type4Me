@@ -76,6 +76,17 @@ interface HidTransport {
     suspend fun sendKeyboardReport(report: ByteArray): Boolean
 
     /**
+     * Transmits a 4-byte standard HID relative mouse input report to the connected host.
+     *
+     * @param buttons Bitmask of mouse buttons (Bit 0: Left, Bit 1: Right, Bit 2: Middle).
+     * @param dx Relative X displacement (-127 to +127).
+     * @param dy Relative Y displacement (-127 to +127).
+     * @param wheel Relative vertical scroll wheel displacement (-127 to +127).
+     * @return True if the report was successfully queued or transmitted, false otherwise.
+     */
+    suspend fun sendMouseReport(buttons: Int = 0, dx: Int = 0, dy: Int = 0, wheel: Int = 0): Boolean
+
+    /**
      * Disconnects the active session with the host device.
      */
     suspend fun disconnect()

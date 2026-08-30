@@ -135,4 +135,34 @@ sealed interface MainUiIntent {
      * Disconnects the currently active Bluetooth HID host connection.
      */
     object DisconnectActiveHost : MainUiIntent
+
+    /**
+     * Switches between Voice Keyboard mode and Touchpad Mouse mode.
+     */
+    data class SwitchMode(val mode: AppMode) : MainUiIntent
+
+    /**
+     * Transmits a relative mouse movement displacement (dX, dY).
+     */
+    data class SendMouseMove(val dx: Int, val dy: Int) : MainUiIntent
+
+    /**
+     * Transmits a mouse left-click event (press and immediate release).
+     */
+    object SendMouseLeftClick : MainUiIntent
+
+    /**
+     * Transmits a mouse right-click event (press and immediate release).
+     */
+    object SendMouseRightClick : MainUiIntent
+
+    /**
+     * Transmits a mouse middle-click event.
+     */
+    object SendMouseMiddleClick : MainUiIntent
+
+    /**
+     * Transmits a vertical mouse scroll wheel delta.
+     */
+    data class SendMouseScroll(val wheel: Int) : MainUiIntent
 }

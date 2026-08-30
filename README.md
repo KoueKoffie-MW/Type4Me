@@ -21,6 +21,7 @@
 ## 🌟 Key Highlights
 
 - ⌨️ **Pure Hardware Bluetooth HID**: Your PC, Mac, or Linux workstation detects your phone as a genuine physical Bluetooth keyboard. No background software, companion daemons, or browser extensions needed on the host.
+- 🖱️ **Tactile Touchpad & Mouse Combo**: Switch instantly to trackpad mode to navigate your workstation screen. Features 1-finger smooth cursor glide, 1-finger tap (left click), long-press / 2-finger tap (right click), dedicated vertical scroll wheel strip, and adjustable speed multiplier.
 - 🤖 **Agentic Prompt Engineering**: Dictate unstructured, stream-of-consciousness thoughts and instantly transform them into structured, high-agency prompts (*Context, Objective, Constraints & Rules, Required Output Format*) tailored for autonomous AI agents like **Antigravity**, **Claude**, and **Hermes**.
 - ⚡ **Sub-Second Gemini 3.5 Flash-Lite**: Blazing-fast (~0.6s) intelligent speech cleanup, punctuation restoration, tone adjustment, and multilingual translation directly via Google GenAI REST API.
 - ⏎ **Chat-Safe Soft-Enters**: Automatically translates multiline prompts into `Shift + Enter` keystrokes, ensuring chat windows, terminal prompts, and AI agents don't submit intermediate text prematurely before the entire message has finished typing.
@@ -39,23 +40,25 @@ Type4Me is intentionally designed to be **featherweight (<10 MB)** by avoiding b
 
 ---
 
-## 📱 Device Compatibility & Hardware Requirements
+## 📱 Device Compatibility & Hardware Matrix
 
 Type4Me operates via the Android **Bluetooth HID Device Profile** (`BluetoothProfile.HID_DEVICE`), allowing the phone to act as a true Bluetooth peripheral.
 
-### 🧪 Verified Devices
-* **Tested Primary Reference Device**: **Google Pixel 10 Pro** *(Android 15 / API 35)* — *100% verified with low-latency Bluetooth HID peripheral registration, live LED sync, and Gemini REST rewriting.*
+### 🧪 Verified Reference Device
+* **Google Pixel 10 Pro** *(Android 15 / API 35)* — *100% verified with low-latency Bluetooth HID peripheral registration, mouse trackpad tracking, live LED sync, and Gemini REST rewriting.*
 
-### 📋 Compatibility Overview
-| Category | Compatibility Status | Notes |
-| :--- | :---: | :--- |
-| **Google Pixel** *(Pixel 4 to 10 Pro / Fold)* | ✅ **Full Support** | Native Google Bluetooth stack with complete HID peripheral role. |
-| **Samsung Galaxy** *(S20–S25, Note, Z Fold/Flip)* | ✅ **Full Support** | One UI 4.0+ (Android 12+) includes full Bluetooth HID Device HAL. |
-| **OnePlus / OPPO / Realme** | ✅ **Full Support** | OxygenOS / ColorOS 11+ supports HID Device mode. |
-| **Sony Xperia** *(Xperia 1, 5, 10 series)* | ✅ **Full Support** | Clean Android implementation with full HID stack. |
-| **Motorola** *(Edge, Razr series)* | ✅ **Full Support** | Android 12+ stock Bluetooth stack. |
-| **Xiaomi / POCO / Redmi** | ⚠️ **Most Devices** | Supported on HyperOS / MIUI builds with standard Bluetooth HAL. |
-| **Android Go / Stripped OEM ROMs** | ❌ **Unsupported** | Some budget chipsets disable Bluetooth HID peripheral mode in kernel/HAL. |
+### 📋 Full Compatibility Matrix by Manufacturer
+| OEM / Brand | Supported Models & Series | Minimum OS Version |
+| :--- | :--- | :---: |
+| **Google** | **Pixel 10, 10 Pro (Reference Device)**<br>Pixel 9, 9 Pro, 9 Pro XL, 9 Pro Fold<br>Pixel 8, 8 Pro, 8a<br>Pixel 7, 7 Pro, 7a<br>Pixel 6, 6 Pro, 6a<br>Pixel 5, 5a, 4, 4 XL, 4a, 3, 3 XL, 2 | Android 9.0+ |
+| **Samsung** | **Galaxy S Series:** S25, S24, S23, S22, S21, S20, S10, S9<br>**Galaxy Z Series:** Z Fold (1–6), Z Flip (1–6)<br>**Galaxy Note Series:** Note 20, Note 10, Note 9<br>**Galaxy A Series:** A55, A54, A53, A52, A73, A72, A35, A34<br>**Galaxy Tab Series:** Tab S10, S9, S8, S7 | One UI 2.0+<br>(Android 10+) |
+| **OnePlus** | OnePlus 13, 12, 11, 10 Pro, 9 Pro, 8 Pro, 7 Pro, 6T<br>OnePlus Nord (Nord 2, 3, 4, CE series) | OxygenOS 11+ |
+| **Sony** | Xperia 1 (Mark I through VI)<br>Xperia 5 (Mark I through V)<br>Xperia 10 (Mark I through VI)<br>Xperia PRO / PRO-I | Android 10+ |
+| **Motorola** | Edge series (30, 40, 50 Pro/Ultra)<br>Razr series (2022, 40 Ultra, 50 Ultra)<br>Moto G Stylus 5G, Moto G Power 5G | Android 12+ |
+| **Nothing** | Phone (1), Phone (2), Phone (2a) | Nothing OS 1.5+ |
+| **ASUS** | ROG Phone (3, 5, 6, 7, 8 Pro)<br>Zenfone (8, 9, 10, 11 Ultra) | Android 11+ |
+| **Xiaomi / POCO** | Xiaomi 15, 14, 13, 12, 11 series<br>POCO F6, F5, F4, X6 Pro, X5 Pro<br>Redmi Note 12, 13, 14 Pro/Pro+ | HyperOS /<br>MIUI 13+ |
+| **Android Go / Stripped OEM ROMs** | Budget chipsets with stripped Bluetooth HAL stacks | ❌ Unsupported |
 
 > [!NOTE]
 > **Minimum Requirement**: Android 9.0 (API 28+) with Bluetooth Low Energy (BLE) and HID Device role enabled by the device manufacturer. Android 14/15 is recommended for full `FOREGROUND_SERVICE_CONNECTED_DEVICE` background typing stability.

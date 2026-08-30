@@ -194,6 +194,24 @@ class UsbHidTransport(
         success
     }
 
+    override suspend fun sendMouseReport(buttons: Int, dx: Int, dy: Int, wheel: Int): Boolean = withContext(ioDispatcher) {
+        val channel = activeChannel ?: return@withContext false
+        if (_connectionState.value != HidConnectionState.CONNECTED) {
+            return@withContext false
+        }
+        val clampedDx = dx.coerceIn(-127, 127).toByte()
+        val clampedDy = dy.coerceIn(-127, 127).toByte()
+        val clampedWheel = wheel.coerceIn(-127, 127).toByte()
+        val mousePacket = byteArrayOf(
+            0x02.toByte(), // Mouse report marker / Report ID 2
+            buttons.toByte(),
+            clampedDx,
+            clampedDy,
+            clampedWheel
+        )
+        channel.write(mousePacket)
+    }
+
     /**
      * Updates internal host LED state received from host USB control endpoint.
      */

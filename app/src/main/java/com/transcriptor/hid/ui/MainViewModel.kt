@@ -163,6 +163,12 @@ open class MainViewModel(
             is MainUiIntent.CloseHostConnectDialog -> _uiState.update { it.copy(isHostConnectDialogOpen = false) }
             is MainUiIntent.ConnectToHost -> handleConnectToHost(intent.address)
             is MainUiIntent.DisconnectActiveHost -> handleDisconnectActiveHost()
+            is MainUiIntent.SwitchMode -> _uiState.update { it.copy(activeMode = intent.mode) }
+            is MainUiIntent.SendMouseMove -> handleSendMouseMove(intent.dx, intent.dy)
+            is MainUiIntent.SendMouseLeftClick -> handleSendMouseClick(BluetoothHidTransport.MOUSE_BUTTON_LEFT)
+            is MainUiIntent.SendMouseRightClick -> handleSendMouseClick(BluetoothHidTransport.MOUSE_BUTTON_RIGHT)
+            is MainUiIntent.SendMouseMiddleClick -> handleSendMouseClick(BluetoothHidTransport.MOUSE_BUTTON_MIDDLE)
+            is MainUiIntent.SendMouseScroll -> handleSendMouseScroll(intent.wheel)
         }
     }
 
@@ -510,6 +516,26 @@ open class MainViewModel(
         scope.launch {
             hidTransport.disconnect()
             loadPairedDevices()
+        }
+    }
+
+    private fun handleSendMouseMove(dx: Int, dy: Int) {
+        scope.launch {
+            hidTransport.sendMouseReport(buttons = 0, dx = dx, dy = dy, wheel = 0)
+        }
+    }
+
+    private fun handleSendMouseClick(buttonMask: Int) {
+        scope.launch {
+            hidTransport.sendMouseReport(buttons = buttonMask, dx = 0, dy = 0, wheel = 0)
+            kotlinx.coroutines.delay(15)
+            hidTransport.sendMouseReport(buttons = 0, dx = 0, dy = 0, wheel = 0)
+        }
+    }
+
+    private fun handleSendMouseScroll(wheel: Int) {
+        scope.launch {
+            hidTransport.sendMouseReport(buttons = 0, dx = 0, dy = 0, wheel = wheel)
         }
     }
 }

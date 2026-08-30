@@ -480,6 +480,27 @@ class MainViewModelTest {
         assertTrue(keystrokeDispatcher.liveDiffDispatches.isNotEmpty())
         assertEquals("Word1 Word2 Word3", keystrokeDispatcher.currentHostText.value)
     }
+
+    @Test
+    fun testSwitchModeAndMouseIntents() = runTest {
+        assertEquals(AppMode.KEYBOARD, viewModel.uiState.value.activeMode)
+
+        // Switch to Touchpad mode
+        viewModel.onIntent(MainUiIntent.SwitchMode(AppMode.TOUCHPAD))
+        assertEquals(AppMode.TOUCHPAD, viewModel.uiState.value.activeMode)
+
+        // Switch back to Keyboard mode
+        viewModel.onIntent(MainUiIntent.SwitchMode(AppMode.KEYBOARD))
+        assertEquals(AppMode.KEYBOARD, viewModel.uiState.value.activeMode)
+
+        // Test mouse movement & click events without throwing
+        viewModel.onIntent(MainUiIntent.SendMouseMove(dx = 10, dy = -5))
+        viewModel.onIntent(MainUiIntent.SendMouseLeftClick)
+        viewModel.onIntent(MainUiIntent.SendMouseRightClick)
+        viewModel.onIntent(MainUiIntent.SendMouseMiddleClick)
+        viewModel.onIntent(MainUiIntent.SendMouseScroll(wheel = 2))
+        testDispatcher.scheduler.advanceUntilIdle()
+    }
 }
 
 // =============================================================================
@@ -568,6 +589,7 @@ private class FakeHidTransport : HidTransport {
 
     override suspend fun initialize(): Boolean = true
     override suspend fun sendKeyboardReport(report: ByteArray): Boolean = true
+    override suspend fun sendMouseReport(buttons: Int, dx: Int, dy: Int, wheel: Int): Boolean = true
     override suspend fun disconnect() {
         connectionState.value = HidConnectionState.DISCONNECTED
         connectedDeviceName.value = null

@@ -107,8 +107,8 @@ class BluetoothHidTransportTest {
 
     @Test
     fun testReportDescriptorSpecification() {
-        val desc = HID_KEYBOARD_REPORT_DESCRIPTOR
-        assertEquals("Report descriptor must be exactly 63 bytes", 63, desc.size)
+        val desc = HID_COMBO_REPORT_DESCRIPTOR
+        assertEquals("Report descriptor must be exactly 129 bytes (Composite Keyboard + Mouse)", 129, desc.size)
 
         // Verify Usage Page (Generic Desktop: 0x05, 0x01)
         assertEquals(0x05.toByte(), desc[0])
@@ -123,15 +123,15 @@ class BluetoothHidTransportTest {
         assertEquals(0x01.toByte(), desc[5])
 
         // Verify End Collection (0xC0)
-        assertEquals(0xC0.toByte(), desc[62])
+        assertEquals(0xC0.toByte(), desc[128])
     }
 
     @Test
     fun testSdpSettingsParameters() {
         val sdp = transport.sdpConfig
         assertNotNull(sdp)
-        assertArrayEquals(HID_KEYBOARD_REPORT_DESCRIPTOR, transport.reportDescriptor)
-        assertEquals(0x40.toByte(), BluetoothHidTransport.SDP_SUBCLASS_KEYBOARD)
+        assertArrayEquals(HID_COMBO_REPORT_DESCRIPTOR, transport.reportDescriptor)
+        assertEquals(0xC0.toByte(), BluetoothHidTransport.SDP_SUBCLASS_COMBO)
         assertEquals("Type4Me Keyboard", sdp.name)
         assertEquals("Type4Me", sdp.provider)
     }
@@ -219,6 +219,33 @@ class BluetoothHidTransportTest {
         val sent = transport.sendKeyboardReport(invalidReport)
         assertFalse("Invalid report size must be rejected", sent)
         assertEquals(0, fakeAdapter.sentReports.size)
+    }
+
+    @Test
+    fun testMouseReportTransmissionAndClamping() = runBlocking {
+        transport.initialize()
+        val mockDev = createMockDevice()
+        fakeAdapter.registeredCallback?.onConnectionStateChanged(mockDev, BluetoothProfile.STATE_CONNECTED)
+
+        // Valid mouse report: Left Click + Move (dx=25, dy=-10, wheel=0)
+        val sent = transport.sendMouseReport(buttons = BluetoothHidTransport.MOUSE_BUTTON_LEFT, dx = 25, dy = -10, wheel = 0)
+        assertTrue("Mouse report must be sent when connected", sent)
+        assertEquals(1, fakeAdapter.sentReports.size)
+        val report = fakeAdapter.sentReports[0]
+        assertEquals(4, report.size)
+        assertEquals(BluetoothHidTransport.MOUSE_BUTTON_LEFT.toByte(), report[0])
+        assertEquals(25.toByte(), report[1])
+        assertEquals((-10).toByte(), report[2])
+        assertEquals(0.toByte(), report[3])
+
+        // Clamping test: dx=300 -> 127, dy=-200 -> -127
+        transport.sendMouseReport(buttons = BluetoothHidTransport.MOUSE_BUTTON_RIGHT, dx = 300, dy = -200, wheel = 5)
+        assertEquals(2, fakeAdapter.sentReports.size)
+        val clampedReport = fakeAdapter.sentReports[1]
+        assertEquals(BluetoothHidTransport.MOUSE_BUTTON_RIGHT.toByte(), clampedReport[0])
+        assertEquals(127.toByte(), clampedReport[1])
+        assertEquals((-127).toByte(), clampedReport[2])
+        assertEquals(5.toByte(), clampedReport[3])
     }
 
     @Test

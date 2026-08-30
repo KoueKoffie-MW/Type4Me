@@ -72,6 +72,11 @@ class HidDeviceServiceTest {
             return true
         }
 
+        override suspend fun sendMouseReport(buttons: Int, dx: Int, dy: Int, wheel: Int): Boolean {
+            sentReports.add(byteArrayOf(0x02, buttons.toByte(), dx.toByte(), dy.toByte(), wheel.toByte()))
+            return true
+        }
+
         override suspend fun disconnect() {
             _connectionState.value = HidConnectionState.DISCONNECTED
         }

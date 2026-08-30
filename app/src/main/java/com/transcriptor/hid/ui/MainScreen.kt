@@ -4,11 +4,14 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.material3.FilterChip
+import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarDuration
@@ -21,6 +24,7 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
@@ -90,34 +94,86 @@ fun MainScreenContent(
                 )
             }
 
-            // Control Bar (Keymap, Mode, Typing Delay)
-            ControlBar(
-                activeLayout = state.activeLayout,
-                liveDiffEnabled = state.liveDiffEnabled,
-                typingDelayMs = state.typingDelayMs,
-                onLayoutChange = { onIntent(MainUiIntent.LayoutSelected(it)) },
-                onLiveDiffToggle = { onIntent(MainUiIntent.LiveDiffToggled(it)) },
-                onDelayChange = { onIntent(MainUiIntent.DelayChanged(it)) }
-            )
+            // Primary Mode Selector: Voice Keyboard vs Touchpad Mouse
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                FilterChip(
+                    selected = state.activeMode == AppMode.KEYBOARD,
+                    onClick = { onIntent(MainUiIntent.SwitchMode(AppMode.KEYBOARD)) },
+                    label = {
+                        Text(
+                            text = "🎙️ Voice Keyboard",
+                            fontWeight = if (state.activeMode == AppMode.KEYBOARD) FontWeight.Bold else FontWeight.Normal
+                        )
+                    },
+                    modifier = Modifier.weight(1f),
+                    colors = FilterChipDefaults.filterChipColors(
+                        selectedContainerColor = MaterialTheme.colorScheme.primaryContainer,
+                        selectedLabelColor = MaterialTheme.colorScheme.onPrimaryContainer
+                    )
+                )
+                FilterChip(
+                    selected = state.activeMode == AppMode.TOUCHPAD,
+                    onClick = { onIntent(MainUiIntent.SwitchMode(AppMode.TOUCHPAD)) },
+                    label = {
+                        Text(
+                            text = "🖱️ Touchpad Mouse",
+                            fontWeight = if (state.activeMode == AppMode.TOUCHPAD) FontWeight.Bold else FontWeight.Normal
+                        )
+                    },
+                    modifier = Modifier.weight(1f),
+                    colors = FilterChipDefaults.filterChipColors(
+                        selectedContainerColor = MaterialTheme.colorScheme.secondaryContainer,
+                        selectedLabelColor = MaterialTheme.colorScheme.onSecondaryContainer
+                    )
+                )
+            }
 
-            // AI Preset Selector Chips Bar
-            PresetSelector(
-                presets = state.presets,
-                selectedPreset = state.selectedPreset,
-                onPresetSelect = { onIntent(MainUiIntent.PresetSelected(it)) },
-                onAddPresetClick = { onIntent(MainUiIntent.OpenPresetDialog()) }
-            )
+            if (state.activeMode == AppMode.KEYBOARD) {
+                // Control Bar (Keymap, Mode, Typing Delay)
+                ControlBar(
+                    activeLayout = state.activeLayout,
+                    liveDiffEnabled = state.liveDiffEnabled,
+                    typingDelayMs = state.typingDelayMs,
+                    onLayoutChange = { onIntent(MainUiIntent.LayoutSelected(it)) },
+                    onLiveDiffToggle = { onIntent(MainUiIntent.LiveDiffToggled(it)) },
+                    onDelayChange = { onIntent(MainUiIntent.DelayChanged(it)) }
+                )
 
-            // Transcription & Voice Typing Editor Canvas
-            TranscriptionCanvas(
-                state = state,
-                onTextChange = { onIntent(MainUiIntent.TextChanged(it)) },
-                onRewriteClick = { onIntent(MainUiIntent.TriggerAiRewrite) },
-                onSendClick = { onIntent(MainUiIntent.SendBufferedKeystrokes) },
-                onClearClick = { onIntent(MainUiIntent.ClearText) },
-                onUndoClick = { onIntent(MainUiIntent.UndoText) },
-                modifier = Modifier.fillMaxWidth()
-            )
+                // AI Preset Selector Chips Bar
+                PresetSelector(
+                    presets = state.presets,
+                    selectedPreset = state.selectedPreset,
+                    onPresetSelect = { onIntent(MainUiIntent.PresetSelected(it)) },
+                    onAddPresetClick = { onIntent(MainUiIntent.OpenPresetDialog()) }
+                )
+
+                // Transcription & Voice Typing Editor Canvas
+                TranscriptionCanvas(
+                    state = state,
+                    onTextChange = { onIntent(MainUiIntent.TextChanged(it)) },
+                    onRewriteClick = { onIntent(MainUiIntent.TriggerAiRewrite) },
+                    onSendClick = { onIntent(MainUiIntent.SendBufferedKeystrokes) },
+                    onClearClick = { onIntent(MainUiIntent.ClearText) },
+                    onUndoClick = { onIntent(MainUiIntent.UndoText) },
+                    modifier = Modifier.fillMaxWidth()
+                )
+            } else {
+                // Touchpad & Precision Mouse Canvas
+                com.transcriptor.hid.ui.components.TouchpadCanvas(
+                    isConnected = state.connectionState == com.transcriptor.hid.service.HidConnectionState.CONNECTED,
+                    onMouseMove = { dx, dy -> onIntent(MainUiIntent.SendMouseMove(dx, dy)) },
+                    onLeftClick = { onIntent(MainUiIntent.SendMouseLeftClick) },
+                    onRightClick = { onIntent(MainUiIntent.SendMouseRightClick) },
+                    onMiddleClick = { onIntent(MainUiIntent.SendMouseMiddleClick) },
+                    onMouseScroll = { wheel -> onIntent(MainUiIntent.SendMouseScroll(wheel)) },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(540.dp)
+                )
+            }
         }
     }
 

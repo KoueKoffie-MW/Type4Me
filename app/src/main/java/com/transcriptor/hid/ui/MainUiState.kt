@@ -5,6 +5,21 @@ import com.transcriptor.hid.engine.KeyLayout
 import com.transcriptor.hid.service.HidConnectionState
 
 /**
+ * Primary operating mode for the application.
+ */
+enum class AppMode {
+    /**
+     * Speech-to-text dictation canvas with AI prompt rewriting.
+     */
+    KEYBOARD,
+
+    /**
+     * Full-screen tactile precision trackpad and mouse.
+     */
+    TOUCHPAD
+}
+
+/**
  * Immutable screen state for the single-screen Transcriptor HID UI.
  */
 data class MainUiState(
@@ -30,7 +45,8 @@ data class MainUiState(
     val settingsFeedbackMessage: String? = null,
     val isApiKeyValid: Boolean? = null,
     val isHostConnectDialogOpen: Boolean = false,
-    val pairedDevices: List<PairedDeviceUi> = emptyList()
+    val pairedDevices: List<PairedDeviceUi> = emptyList(),
+    val activeMode: AppMode = AppMode.KEYBOARD
 ) {
     /**
      * Calculated word count for dictation telemetry.
