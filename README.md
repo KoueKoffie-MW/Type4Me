@@ -4,7 +4,7 @@
 
 # 🎙️ Type4Me
 
-**Hardware-Level Speech-to-Keystroke & AI Prompt Bridge for Android**
+**Hardware-Level Speech-to-Keystroke & Touchpad Mouse Bridge with AI Prompt Engineering for Android**
 
 [![Platform](https://img.shields.io/badge/Platform-Android%2014%20%7C%2015-3DDC84.svg?logo=android&logoColor=white)](https://android.com)
 [![Protocol](https://img.shields.io/badge/Protocol-Bluetooth%20HID%20Profile-0082FC.svg?logo=bluetooth&logoColor=white)](https://www.bluetooth.com)
@@ -12,7 +12,7 @@
 [![Tests](https://img.shields.io/badge/Tests-436%20Passing-brightgreen.svg)](tests/)
 [![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](LICENSE)
 
-*Speak naturally. Let Gemini structure your thoughts or engineer agentic prompts. Transmit pure hardware keystrokes into any workstation with zero host-side drivers.*
+*Speak naturally, navigate effortlessly. Structure stream-of-consciousness dictation into high-agency AI prompts via Gemini Flash-Lite and stream pure hardware keystrokes & mouse movements directly into any PC, Mac, or Linux workstation with zero host-side drivers.*
 
 </div>
 
