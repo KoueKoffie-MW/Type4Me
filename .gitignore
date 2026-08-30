@@ -14,6 +14,7 @@ captures/
 .externalNativeBuild
 .cxx
 *.apk
+!release/*.apk
 *.aab
 .agents/
 __pycache__/

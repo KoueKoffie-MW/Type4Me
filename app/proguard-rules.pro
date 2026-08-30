@@ -18,8 +18,20 @@
 -keep class com.transcriptor.hid.service.HidQosConfiguration { *; }
 
 # Keep Google GenAI SDK & Kotlinx Serialization
+-keep class com.google.genai.** { *; }
 -keepclassmembers class com.google.genai.** { *; }
 -keepattributes *Annotation*,Signature,InnerClasses,EnclosingMethod
+
+# Ignore compiler / annotation processor metadata packaged in shaded libraries
+-dontwarn javax.annotation.processing.**
+-dontwarn javax.lang.model.**
+-dontwarn javax.naming.**
+-dontwarn org.ietf.jgss.**
+-dontwarn org.apache.http.**
+-dontwarn autovalue.shaded.**
+-dontwarn com.google.auto.value.**
+-dontwarn org.codehaus.mojo.animal_sniffer.**
+-dontwarn com.google.errorprone.annotations.**
 
 # Keep Coroutines
 -keepclassmembernames class kotlinx.coroutines.** {

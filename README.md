@@ -6,6 +6,7 @@
 
 **Hardware-Level Speech-to-Keystroke & Touchpad Mouse Bridge with AI Prompt Engineering for Android**
 
+[![Download APK](https://img.shields.io/badge/Download%20APK-v1.0.0%20(4.1%20MB)-success.svg?logo=android&logoColor=white)](release/Type4Me-v1.0.0.apk)
 [![Platform](https://img.shields.io/badge/Platform-Android%2014%20%7C%2015-3DDC84.svg?logo=android&logoColor=white)](https://android.com)
 [![Protocol](https://img.shields.io/badge/Protocol-Bluetooth%20%7C%20USB%20HID-0082FC.svg?logo=bluetooth&logoColor=white)](https://www.bluetooth.com)
 [![AI Engine](https://img.shields.io/badge/AI%20Engine-Google%20Gemini%20Flash--Lite-8E75FF.svg?logo=google&logoColor=white)](https://deepmind.google/technologies/gemini/)
