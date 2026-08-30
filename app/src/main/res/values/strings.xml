@@ -1,0 +1,50 @@
+<resources>
+    <string name="app_name">Type4Me</string>
+    <string name="connection_header_title">Type4Me</string>
+    <string name="status_connected">Connected</string>
+    <string name="status_connecting">Connecting...</string>
+    <string name="status_disconnected">Disconnected</string>
+    <string name="status_error">Error</string>
+    <string name="btn_discoverable">Pair Host</string>
+    <string name="btn_disconnect">Disconnect</string>
+    <string name="host_pc_default">Host PC</string>
+
+    <!-- Keymap & Transmission Controls -->
+    <string name="label_keymap">Keymap</string>
+    <string name="keymap_german">DE QWERTZ</string>
+    <string name="keymap_us">US QWERTY</string>
+    <string name="label_transmission_mode">Transmission Mode</string>
+    <string name="mode_burst">⚡ Burst</string>
+    <string name="mode_live_diff">🔴 Live Diff</string>
+    <string name="label_typing_delay">Typing Delay: %1$d ms</string>
+
+    <!-- Presets -->
+    <string name="label_ai_presets">AI Presets</string>
+    <string name="preset_clean_polish">Clean &amp; Polish</string>
+    <string name="preset_business_german">Business German</string>
+    <string name="preset_technical_comments">Technical Code Comments</string>
+    <string name="btn_add_preset">+ Custom</string>
+    <string name="dialog_create_preset_title">Create Custom Preset</string>
+    <string name="dialog_edit_preset_title">Edit Preset</string>
+    <string name="preset_field_title">Preset Title</string>
+    <string name="preset_field_prompt">System Instruction Prompt</string>
+    <string name="preset_field_description">Description (Optional)</string>
+    <string name="btn_save">Save</string>
+    <string name="btn_cancel">Cancel</string>
+    <string name="btn_delete">Delete</string>
+
+    <!-- Transcription Canvas -->
+    <string name="canvas_placeholder">Tap here and press Gboard 🎙️ to dictate, or type text to transmit...</string>
+    <string name="telemetry_counter">%1$d words | %2$d chars</string>
+    <string name="btn_rewrite_ai">✨ Rewrite with AI</string>
+    <string name="rewriting_progress">Rewriting with AI...</string>
+    <string name="btn_send_keystrokes">Send to PC</string>
+    <string name="btn_clear">Clear</string>
+    <string name="btn_undo">Undo</string>
+
+    <!-- Errors and Alerts -->
+    <string name="error_host_disconnected">Host PC is not connected. Please pair and connect via Bluetooth first.</string>
+    <string name="error_empty_text">No text available to transmit.</string>
+    <string name="error_ai_failed">AI rewrite failed: %1$s</string>
+    <string name="error_no_api_key">Gemini API key is not configured.</string>
+</resources>

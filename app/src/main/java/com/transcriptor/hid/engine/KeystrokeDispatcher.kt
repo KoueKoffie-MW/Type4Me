@@ -1,0 +1,142 @@
+package com.transcriptor.hid.engine
+
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
+
+/**
+ * Keystroke Dispatcher & Transmission Engine interface.
+ */
+interface KeystrokeDispatcher {
+    /**
+     * Observable state of the text currently rendered on the host editor.
+     */
+    val currentHostText: StateFlow<String>
+
+    /**
+     * Types an entire text string in fast buffered burst mode with deterministic pacing.
+     *
+     * @param text The text to type.
+     * @param delayMs Total inter-character cycle duration in milliseconds (default 8ms).
+     */
+    suspend fun dispatchBurst(text: String, delayMs: Long = 8L)
+
+    /**
+     * Updates the host editor to match [newHypothesis] by computing the minimal LCP diff,
+     * emitting the required backspaces, and appending new characters.
+     *
+     * @param newHypothesis The latest speech recognition hypothesis.
+     * @param delayMs Total inter-character cycle duration in milliseconds (default 8ms).
+     */
+    suspend fun dispatchLiveDiff(newHypothesis: String, delayMs: Long = 8L)
+
+    /**
+     * Sends a raw list of HID keystrokes with deterministic pacing.
+     */
+    suspend fun sendRawKeyStrokes(keyStrokes: List<HidKeyStroke>, delayMs: Long = 8L)
+
+    /**
+     * Resets the tracked host text state to empty without transmitting keystrokes.
+     */
+    fun resetState()
+
+    companion object {
+        fun create(
+            translator: KeymapTranslator,
+            deltaDiffEngine: DeltaDiffEngine = DeltaDiffEngine.create(),
+            reportSender: suspend (ByteArray) -> Boolean = { true }
+        ): KeystrokeDispatcher =
+            DefaultKeystrokeDispatcher(
+                translator = translator,
+                deltaDiffEngine = deltaDiffEngine,
+                reportSender = reportSender
+            )
+    }
+}
+
+/**
+ * Default coroutine-driven implementation of [KeystrokeDispatcher].
+ *
+ * Enforces serialized transmission and deterministic key-down ($t_{down}$) and key-up ($t_{up}$)
+ * pacing to prevent dropped keystrokes on host OS input queues.
+ */
+class DefaultKeystrokeDispatcher(
+    var translator: KeymapTranslator,
+    val deltaDiffEngine: DeltaDiffEngine = DefaultDeltaDiffEngine(),
+    private val reportSender: suspend (ByteArray) -> Boolean = { true }
+) : KeystrokeDispatcher {
+
+    private val mutex = Mutex()
+    private val _currentHostText = MutableStateFlow("")
+    override val currentHostText: StateFlow<String> = _currentHostText.asStateFlow()
+
+    override suspend fun dispatchBurst(text: String, delayMs: Long) {
+        if (text.isEmpty()) return
+        mutex.withLock {
+            val strokes = translator.translateString(text)
+            transmitStrokesInternal(strokes, delayMs)
+            _currentHostText.value += text
+        }
+    }
+
+    override suspend fun dispatchLiveDiff(newHypothesis: String, delayMs: Long) {
+        mutex.withLock {
+            val diff = deltaDiffEngine.computeDiff(_currentHostText.value, newHypothesis)
+
+            // Emit required backspaces
+            if (diff.backspacesNeeded > 0) {
+                val backspaceStrokes = translator.translateChar('\b')
+                val stroke = backspaceStrokes.firstOrNull()
+                    ?: HidKeyStroke(HidConstants.MOD_NONE, HidConstants.KEY_BACKSPACE)
+                val bsList = List(diff.backspacesNeeded) { stroke }
+                transmitStrokesInternal(bsList, delayMs)
+            }
+
+            // Emit new suffix to append
+            if (diff.textToAppend.isNotEmpty()) {
+                val appendStrokes = translator.translateString(diff.textToAppend)
+                transmitStrokesInternal(appendStrokes, delayMs)
+            }
+
+            _currentHostText.value = newHypothesis
+        }
+    }
+
+    override suspend fun sendRawKeyStrokes(keyStrokes: List<HidKeyStroke>, delayMs: Long) {
+        if (keyStrokes.isEmpty()) return
+        mutex.withLock {
+            transmitStrokesInternal(keyStrokes, delayMs)
+        }
+    }
+
+    override fun resetState() {
+        _currentHostText.value = ""
+    }
+
+    /**
+     * Transmits a list of keystrokes with key-down and key-up reports and deterministic pacing.
+     */
+    private suspend fun transmitStrokesInternal(strokes: List<HidKeyStroke>, delayMs: Long) {
+        val tDown = if (delayMs > 0) maxOf(1L, delayMs / 2) else 0L
+        val tUp = if (delayMs > 0) maxOf(1L, delayMs - tDown) else 0L
+
+        for (stroke in strokes) {
+            // 1. Key-Down Report
+            val downReport = stroke.toKeyDownReport().toByteArray()
+            reportSender(downReport)
+            if (tDown > 0) {
+                delay(tDown)
+            }
+
+            // 2. Key-Up (Release) Report
+            val upReport = HidKeyStroke.RELEASE_REPORT.toByteArray()
+            reportSender(upReport)
+            if (tUp > 0) {
+                delay(tUp)
+            }
+        }
+    }
+}
