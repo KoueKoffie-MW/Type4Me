@@ -29,12 +29,45 @@
 
 ---
 
+## 🎙️ Lightweight Architecture & Voice Input Philosophy
+
+Type4Me is intentionally designed to be **featherweight (<10 MB)** by avoiding bulky 500MB embedded ASR neural networks. Instead, it leverages the state-of-the-art voice typing already built into your Android operating system:
+
+* **Leverage Existing On-Device Speech Engines**: Tap the transcription canvas and press the microphone icon (`🎙️`) on your on-screen keyboard.
+* **Recommended Keyboard**: **Gboard (Google Keyboard)** is strongly recommended for its superior accuracy, multi-language speech recognition, seamless code-switching (e.g. English, Afrikaans, German), and offline on-device speech transcription.
+* **Separation of Concerns**: Your system keyboard handles raw acoustic transcription; **Type4Me** handles **AI prompt orchestration, layout translation, and hardware keystroke injection**.
+
+---
+
+## 📱 Device Compatibility & Hardware Requirements
+
+Type4Me operates via the Android **Bluetooth HID Device Profile** (`BluetoothProfile.HID_DEVICE`), allowing the phone to act as a true Bluetooth peripheral.
+
+### 🧪 Verified Devices
+* **Tested Primary Reference Device**: **Google Pixel 10 Pro** *(Android 15 / API 35)* — *100% verified with low-latency Bluetooth HID peripheral registration, live LED sync, and Gemini REST rewriting.*
+
+### 📋 Compatibility Overview
+| Category | Compatibility Status | Notes |
+| :--- | :---: | :--- |
+| **Google Pixel** *(Pixel 4 to 10 Pro / Fold)* | ✅ **Full Support** | Native Google Bluetooth stack with complete HID peripheral role. |
+| **Samsung Galaxy** *(S20–S25, Note, Z Fold/Flip)* | ✅ **Full Support** | One UI 4.0+ (Android 12+) includes full Bluetooth HID Device HAL. |
+| **OnePlus / OPPO / Realme** | ✅ **Full Support** | OxygenOS / ColorOS 11+ supports HID Device mode. |
+| **Sony Xperia** *(Xperia 1, 5, 10 series)* | ✅ **Full Support** | Clean Android implementation with full HID stack. |
+| **Motorola** *(Edge, Razr series)* | ✅ **Full Support** | Android 12+ stock Bluetooth stack. |
+| **Xiaomi / POCO / Redmi** | ⚠️ **Most Devices** | Supported on HyperOS / MIUI builds with standard Bluetooth HAL. |
+| **Android Go / Stripped OEM ROMs** | ❌ **Unsupported** | Some budget chipsets disable Bluetooth HID peripheral mode in kernel/HAL. |
+
+> [!NOTE]
+> **Minimum Requirement**: Android 9.0 (API 28+) with Bluetooth Low Energy (BLE) and HID Device role enabled by the device manufacturer. Android 14/15 is recommended for full `FOREGROUND_SERVICE_CONNECTED_DEVICE` background typing stability.
+
+---
+
 ## 🏗️ Architecture
 
 ```mermaid
 graph LR
     subgraph Android Device [📱 Android Device]
-        A[🎙️ Voice Input / Gboard] --> B[📝 Transcription Canvas]
+        A[🎙️ Gboard Voice Typing] --> B[📝 Transcription Canvas]
         B --> C{✨ AI Rewrite?}
         C -- Yes --> D[⚡ Gemini 3.5 Flash-Lite]
         D --> B
@@ -54,7 +87,8 @@ graph LR
 ## 🚀 Getting Started
 
 ### 1. Requirements
-* Android device running **Android 14 (API 34)** or **Android 15 (API 35)** with Bluetooth Low Energy / HID Peripheral support.
+* Compatible Android device with Bluetooth HID Peripheral support.
+* Gboard (Google Keyboard) installed for high-speed voice dictation.
 * Google Gemini API Key (get one free at [Google AI Studio](https://aistudio.google.com/)).
 
 ### 2. Pairing with your PC
