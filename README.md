@@ -9,7 +9,7 @@
 [![Platform](https://img.shields.io/badge/Platform-Android%2014%20%7C%2015-3DDC84.svg?logo=android&logoColor=white)](https://android.com)
 [![Protocol](https://img.shields.io/badge/Protocol-Bluetooth%20HID%20Profile-0082FC.svg?logo=bluetooth&logoColor=white)](https://www.bluetooth.com)
 [![AI Engine](https://img.shields.io/badge/AI%20Engine-Google%20Gemini%20Flash--Lite-8E75FF.svg?logo=google&logoColor=white)](https://deepmind.google/technologies/gemini/)
-[![Tests](https://img.shields.io/badge/Tests-434%20Passing-brightgreen.svg)](tests/)
+[![Tests](https://img.shields.io/badge/Tests-436%20Passing-brightgreen.svg)](tests/)
 [![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](LICENSE)
 
 *Speak naturally. Let Gemini structure your thoughts or engineer agentic prompts. Transmit pure hardware keystrokes into any workstation with zero host-side drivers.*
@@ -107,11 +107,22 @@ graph LR
 
 ---
 
+## 📚 Technical Documentation & Guides
+
+Comprehensive technical guides and architecture specifications are available in the [`docs/`](docs/) directory:
+
+* 🏛️ **[System Architecture](docs/ARCHITECTURE.md)**: Unidirectional MVI data flow, Composite Bluetooth HID descriptor (129B), LCP delta-diff streaming, and typography engine.
+* 🖱️ **[Touchpad & Mouse Guide](docs/TOUCHPAD_GUIDE.md)**: Multi-touch trackpad gestures, scroll strip, tactile click buttons, and sensitivity curve tuning.
+* 🤖 **[Agentic Prompt Engineering](docs/PROMPT_ENGINEERING.md)**: Transforming stream-of-consciousness speech into structured coding prompts for Antigravity, Claude, and ChatGPT.
+* 📱 **[Hardware & Bluetooth HAL Matrix](docs/HARDWARE_COMPATIBILITY.md)**: Full vendor breakdown, Bluetooth HID Device profile requirements, and ADB diagnostics.
+
+---
+
 ## 🧪 Testing & Verification
 
 Type4Me is verified with a comprehensive multi-tier test suite:
 
-### 1. Android JVM Unit Tests (133 Tests)
+### 1. Android JVM Unit Tests (135 Tests)
 ```bash
 ./gradlew test
 ```
