@@ -10,7 +10,7 @@
 [![Protocol](https://img.shields.io/badge/Protocol-Bluetooth%20HID%20Profile-0082FC.svg?logo=bluetooth&logoColor=white)](https://www.bluetooth.com)
 [![AI Engine](https://img.shields.io/badge/AI%20Engine-Google%20Gemini%20Flash--Lite-8E75FF.svg?logo=google&logoColor=white)](https://deepmind.google/technologies/gemini/)
 [![Tests](https://img.shields.io/badge/Tests-434%20Passing-brightgreen.svg)](tests/)
-[![License](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
+[![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](LICENSE)
 
 *Speak naturally. Let Gemini structure your thoughts or engineer agentic prompts. Transmit pure hardware keystrokes into any workstation with zero host-side drivers.*
 
@@ -94,4 +94,4 @@ python tests/e2e/run_e2e_tests.py
 
 ## 📄 License
 
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+This project is licensed under the Apache License, Version 2.0 - see the [LICENSE](LICENSE) file for details.
