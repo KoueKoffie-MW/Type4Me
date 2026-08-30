@@ -7,7 +7,7 @@
 **Hardware-Level Speech-to-Keystroke & Touchpad Mouse Bridge with AI Prompt Engineering for Android**
 
 [![Platform](https://img.shields.io/badge/Platform-Android%2014%20%7C%2015-3DDC84.svg?logo=android&logoColor=white)](https://android.com)
-[![Protocol](https://img.shields.io/badge/Protocol-Bluetooth%20HID%20Profile-0082FC.svg?logo=bluetooth&logoColor=white)](https://www.bluetooth.com)
+[![Protocol](https://img.shields.io/badge/Protocol-Bluetooth%20%7C%20USB%20HID-0082FC.svg?logo=bluetooth&logoColor=white)](https://www.bluetooth.com)
 [![AI Engine](https://img.shields.io/badge/AI%20Engine-Google%20Gemini%20Flash--Lite-8E75FF.svg?logo=google&logoColor=white)](https://deepmind.google/technologies/gemini/)
 [![Tests](https://img.shields.io/badge/Tests-436%20Passing-brightgreen.svg)](tests/)
 [![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](LICENSE)
@@ -20,13 +20,33 @@
 
 ## 🌟 Key Highlights
 
-- ⌨️ **Pure Hardware Bluetooth HID**: Your PC, Mac, or Linux workstation detects your phone as a genuine physical Bluetooth keyboard. No background software, companion daemons, or browser extensions needed on the host.
-- 🖱️ **Tactile Touchpad & Mouse Combo**: Switch instantly to trackpad mode to navigate your workstation screen. Features 1-finger smooth cursor glide, 1-finger tap (left click), long-press / 2-finger tap (right click), dedicated vertical scroll wheel strip, and adjustable speed multiplier.
-- 🤖 **Agentic Prompt Engineering**: Dictate unstructured, stream-of-consciousness thoughts and instantly transform them into structured, high-agency prompts (*Context, Objective, Constraints & Rules, Required Output Format*) tailored for autonomous AI agents like **Antigravity**, **Claude**, and **Hermes**.
+- ⌨️ **Pure Hardware Bluetooth & USB HID**: Your PC, Mac, or Linux workstation detects your phone as a genuine physical Bluetooth/USB keyboard and mouse. Zero host-side background software, companion daemons, or browser extensions needed.
+- 🔒 **Zero Host Screen Exposure & Absolute Privacy**: Unlike screen-scraping AI tools or OS-level overlays that record your screen and send confidential data to third parties, Type4Me operates purely as a blind hardware input device. It has **zero access to your computer's screen, open windows, or host filesystem**.
+- 🚀 **Voice Typing for ANYTHING**: Because it operates strictly at the hardware HID layer, Type4Me brings instantaneous voice typing and AI prompt structuring to **any software on earth** — including locked-down corporate virtual desktops (Citrix, RDP, VMware), air-gapped terminal consoles (SSH, vim, tmux), IDEs (VS Code, Android Studio, Cursor), CAD/Simscape/MATLAB environments, and game engines.
+- 🖱️ **Tactile Touchpad & Mouse Combo**: Switch instantly to trackpad mode to navigate your workstation screen. Features 1-finger smooth cursor glide, 1-finger tap (left click), long-press / 2-finger tap (right click), dedicated vertical scroll wheel strip, and adjustable speed multiplier ($0.5\times$ to $3.0\times$).
+- 🤖 **Agentic Prompt Engineering**: Dictate unstructured, stream-of-consciousness thoughts and instantly transform them into structured, high-agency prompts (*Context, Objective, Constraints & Rules, Required Output Format*) tailored for autonomous AI agents like **Antigravity**, **Claude Code**, **ChatGPT**, and **Hermes**.
 - ⚡ **Sub-Second Gemini 3.5 Flash-Lite**: Blazing-fast (~0.6s) intelligent speech cleanup, punctuation restoration, tone adjustment, and multilingual translation directly via Google GenAI REST API.
 - ⏎ **Chat-Safe Soft-Enters**: Automatically translates multiline prompts into `Shift + Enter` keystrokes, ensuring chat windows, terminal prompts, and AI agents don't submit intermediate text prematurely before the entire message has finished typing.
 - 🔴 **Live Delta-Diff Streaming**: Real-time voice typing synchronization that calculates the Longest Common Prefix (LCP) against the host text, emitting backspaces and typing additions dynamically as you speak.
 - 🌐 **DIN 2137-1 German QWERTZ & US QWERTY**: Flawless hardware translation for German umlauts (`ä`, `ö`, `ü`, `ß`), `AltGr` symbols (`@`, `€`, `\`, `{`, `}`), dead keys with auto-space injection (`^`, `´`, `` ` ``), and smart typography.
+
+---
+
+## 🔒 Radical Privacy & Universal Compatibility
+
+### 1. Zero On-Screen Exposure
+Traditional desktop AI tools, accessibility bridges, or telemetry daemons require elevated privileges to monitor and scrape what is displayed on your monitor. 
+
+**Type4Me takes the opposite approach**:
+* All speech capture and AI prompt rewriting take place **entirely on your mobile device**.
+* The phone only transmits outgoing hardware electrical scancodes (keystrokes and mouse packets) to your workstation.
+* Your proprietary source code, classified engineering models, confidential emails, and sensitive screens remain **100% invisible and unexposed**.
+
+### 2. Universal Software Voice Typing
+Because your operating system treats Type4Me as a standard physical USB/Bluetooth peripheral:
+* **No Host Software or Admin Rights**: Works on strictly managed enterprise corporate laptops without requiring IT approval or background service installation.
+* **Air-Gapped & Secure Environments**: Compatible with air-gapped development machines, secure virtualization layers, remote desktop sessions, and Linux headless servers.
+* **Universal App Support**: Works seamlessly inside terminal editors (`vim`, `nano`, `emacs`), IDEs (`VS Code`, `IntelliJ`, `MATLAB`), chat apps (`Slack`, `Discord`, `Teams`), and browser prompt fields.
 
 ---
 
@@ -37,6 +57,20 @@ Type4Me is intentionally designed to be **featherweight (<10 MB)** by avoiding b
 * **Leverage Existing On-Device Speech Engines**: Tap the transcription canvas and press the microphone icon (`🎙️`) on your on-screen keyboard.
 * **Recommended Keyboard**: **Gboard (Google Keyboard)** is strongly recommended for its superior accuracy, multi-language speech recognition, seamless code-switching (e.g. English, Afrikaans, German), and offline on-device speech transcription.
 * **Separation of Concerns**: Your system keyboard handles raw acoustic transcription; **Type4Me** handles **AI prompt orchestration, layout translation, and hardware keystroke injection**.
+
+---
+
+## 🔌 Dual Transport: Wireless Bluetooth & Wired USB
+
+Type4Me supports two independent hardware transport pipelines:
+
+1. **Wireless Bluetooth HID Profile (`BluetoothProfile.HID_DEVICE`)**:
+   - Standard 2.4 GHz wireless connection for untethered flexibility across laptops, desktop workstations, tablets, and phones.
+2. **Wired USB Transport (`UsbHidTransport`)**:
+   - **Android Open Accessory (AOA) 2.0**: Direct USB cable connection emulating a physical wired USB HID keyboard and mouse.
+   - **ADB Reverse Socket Bridge**: Fallback TCP socket bridging over standard USB debugging cables.
+   - **Linux USB Gadget (`/dev/hidg0`)**: Direct ConfigFS kernel gadget integration for embedded devices and rooted environments.
+   - *Use cases*: RF-restricted defense/government zones, high-interference industrial labs, or desktop PCs without Bluetooth hardware.
 
 ---
 
@@ -76,12 +110,12 @@ graph LR
         D --> B
         B --> E[⌨️ Keymap Translator<br/>DE QWERTZ / US QWERTY]
         E --> F[⏱️ Keystroke Dispatcher<br/>Burst / Live-Diff Engine]
-        F --> G[📡 Android Bluetooth HID Profile]
+        F --> G[📡 Bluetooth / USB HID Engine]
     end
 
-    subgraph Host Workstation [💻 Host Workstation]
-        G -- Standard 8-Byte HID Reports --> H[🔌 Host Bluetooth Subsystem]
-        H --> I[🖥️ IDE / Terminal / AI Chat / Agent]
+    subgraph Host Workstation [💻 Host Workstation (Zero Software)]
+        G -- Standard 8B Keyboard / 4B Mouse Reports --> H[🔌 Host In-Box HID Subsystem]
+        H --> I[🖥️ Any App: Terminal / IDE / CAD / Citrix / AI Agent]
     end
 ```
 
@@ -90,11 +124,11 @@ graph LR
 ## 🚀 Getting Started
 
 ### 1. Requirements
-* Compatible Android device with Bluetooth HID Peripheral support.
+* Compatible Android device with Bluetooth HID Peripheral or USB OTG support.
 * Gboard (Google Keyboard) installed for high-speed voice dictation.
 * Google Gemini API Key (get one free at [Google AI Studio](https://aistudio.google.com/)).
 
-### 2. Pairing with your PC
+### 2. Pairing with your PC (Bluetooth)
 1. Open **Type4Me** on your phone.
 2. Tap the connection card in the top header or select **"Pair Host"** to make your device discoverable.
 3. On your PC/Mac, open Bluetooth Settings, scan for **"Type4Me Keyboard"**, and pair.
@@ -111,7 +145,8 @@ graph LR
 
 Comprehensive technical guides and architecture specifications are available in the [`docs/`](docs/) directory:
 
-* 🏛️ **[System Architecture](docs/ARCHITECTURE.md)**: Unidirectional MVI data flow, Composite Bluetooth HID descriptor (129B), LCP delta-diff streaming, and typography engine.
+* 🏛️ **[System Architecture](docs/ARCHITECTURE.md)**: Unidirectional MVI data flow, Composite Bluetooth/USB HID descriptor (129B), LCP delta-diff streaming, and typography engine.
+* 🔒 **[Privacy & Security Model](docs/ARCHITECTURE.md#security--screen-privacy-model)**: Air-gap assurance, zero host inspection, and physical keystroke isolation.
 * 🖱️ **[Touchpad & Mouse Guide](docs/TOUCHPAD_GUIDE.md)**: Multi-touch trackpad gestures, scroll strip, tactile click buttons, and sensitivity curve tuning.
 * 🤖 **[Agentic Prompt Engineering](docs/PROMPT_ENGINEERING.md)**: Transforming stream-of-consciousness speech into structured coding prompts for Antigravity, Claude, and ChatGPT.
 * 📱 **[Hardware & Bluetooth HAL Matrix](docs/HARDWARE_COMPATIBILITY.md)**: Full vendor breakdown, Bluetooth HID Device profile requirements, and ADB diagnostics.
@@ -132,8 +167,8 @@ Type4Me is verified with a comprehensive multi-tier test suite:
 python tests/e2e/run_e2e_tests.py
 ```
 
-* **Tier 1**: Core Feature Coverage (Report generation, Keymaps, AltGr, Dead keys)
-* **Tier 2**: Boundary & Corner Cases (Empty strings, max buffers, rapid bursts)
+* **Tier 1**: Core Feature Coverage (Report generation, Keymaps, AltGr, Dead keys, Mouse reports)
+* **Tier 2**: Boundary & Corner Cases (Empty strings, max buffers, rapid bursts, mouse clamping)
 * **Tier 3**: Cross-Feature Integration (AI rewrite + keymap translation + HID dispatch)
 * **Tier 4**: Real-World Workload Scenarios (Full coding prompts, German emails)
 * **Tier 5**: Adversarial Stress & Jitter (Simulated packet drops, timing jitter)

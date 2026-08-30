@@ -115,3 +115,58 @@ When **Live Diff Mode** is active:
 - **Sub-Second Execution**: Uses `gemini-3.5-flash-lite` by default for ultra-low latency (~0.6s).
 - **Dynamic Key & Model Resolution**: Reads API keys and model selections dynamically on every rewrite request without requiring app restarts or service recreation.
 - **Room Database Presets**: Built-in presets are seeded automatically and can be extended by user-defined custom prompts stored locally.
+
+---
+
+### 6. Dual Hardware Transport: Wireless Bluetooth & Wired USB
+Type4Me supports two decoupled transport pipelines via the [`HidTransport`](../app/src/main/java/com/transcriptor/hid/service/HidTransport.kt) interface:
+
+1. **Bluetooth HID Peripheral (`BluetoothHidTransport.kt`)**:
+   - Manages the Android `BluetoothHidDevice` lifecycle, SDP registration, and host state synchronization.
+2. **Wired USB Transport (`UsbHidTransport.kt`)**:
+   - **Android Open Accessory (AOA) 2.0**: Direct USB cable connection emulating an in-box USB keyboard & mouse.
+   - **ADB Reverse Socket Bridge**: Relays HID reports over local TCP (`adb reverse tcp:8080 tcp:8080`) during development or tethered sessions.
+   - **Linux USB Gadget (`/dev/hidg0`)**: Direct kernel character device integration via ConfigFS for rooted/embedded environments.
+   - *Target Environments*: RF-shielded laboratories, government/defense workstations where Bluetooth is disabled by policy, or desktop rigs lacking a Bluetooth adapter.
+
+---
+
+## 🔒 Security & Screen Privacy Model
+
+```
++-------------------------------------------------------------+
+|                  HOST WORKSTATION BOUNDARY                  |
+|                                                             |
+|   [Confidential Source Code / Proprietary CAD / Financials]  |
+|                               ^                             |
+|                               | (100% INVISIBLE TO APP)     |
+|   +---------------------------+-------------------------+   |
+|   |         OS Kernel Physical Input Subsystem          |   |
+|   +---------------------------^-------------------------+   |
++-------------------------------|-----------------------------+
+                                | Standard Blind Keystrokes
+                                | (No Telemetry / No Screen Scraping)
++-------------------------------|-----------------------------+
+|   [Type4Me Mobile App]        |                             |
+|   (Speech-to-Text & Gemini) --+                             |
+|                                                             |
+|                    ANDROID PHONE BOUNDARY                   |
++-------------------------------------------------------------+
+```
+
+### 1. Zero Screen & Host File Exposure
+Traditional AI writing assistants, desktop screen-recorders, or OCR overlays require OS accessibility permissions to scrape what is currently open on your monitor. 
+
+**Type4Me offers absolute privacy**:
+- The application executes **exclusively on your personal phone**.
+- It has **zero access** to host display buffers, open windows, clipboard history, or workstation filesystems.
+- The host workstation perceives Type4Me as an unthinking, hardware keyboard and mouse plugged into a physical port.
+
+### 2. Universal Application Compatibility
+Because Type4Me injects standard hardware scancodes at the OS kernel driver layer, it requires **zero plugins, extensions, or host background software**. 
+
+It instantly enables voice typing and agentic prompt restructuring in:
+- **Locked-Down Virtual Desktops**: Citrix Workspace, VMware Horizon, Microsoft Remote Desktop (RDP).
+- **Terminal Consoles & Remote Shells**: SSH, PuTTY, `tmux`, `screen`, `vim`, `nano`, `emacs`.
+- **Engineering & IDE Workspaces**: VS Code, Android Studio, CLion, Cursor, MATLAB, Simulink, Unreal Engine, Blender.
+- **Air-Gapped Workstations & UEFI**: Secure development networks, server consoles, and even BIOS/UEFI configuration screens.
