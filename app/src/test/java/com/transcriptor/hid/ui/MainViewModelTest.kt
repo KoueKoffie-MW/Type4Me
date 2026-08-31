@@ -414,6 +414,8 @@ class MainViewModelTest {
         viewModel.onIntent(MainUiIntent.OpenSettings)
         viewModel.onIntent(MainUiIntent.UpdateApiKey("AIzaSyPersistedKey99"))
         viewModel.onIntent(MainUiIntent.SelectModel("gemini-3.5-flash-lite"))
+        viewModel.onIntent(MainUiIntent.UpdateSpeakerAccent("Afrikaans"))
+        viewModel.onIntent(MainUiIntent.UpdateSpokenLanguage("English"))
         viewModel.onIntent(MainUiIntent.SaveSettings)
 
         testDispatcher.scheduler.advanceUntilIdle()
@@ -421,6 +423,10 @@ class MainViewModelTest {
         assertFalse(viewModel.uiState.value.isSettingsOpen)
         assertEquals("AIzaSyPersistedKey99", settingsRepository.apiKey.first())
         assertEquals("gemini-3.5-flash-lite", settingsRepository.selectedModel.first())
+        assertEquals("Afrikaans", settingsRepository.speakerAccent.first())
+        assertEquals("English", settingsRepository.spokenLanguage.first())
+        assertEquals("Afrikaans", viewModel.uiState.value.speakerAccent)
+        assertEquals("English", viewModel.uiState.value.spokenLanguage)
     }
 
     @Test

@@ -27,6 +27,17 @@ class SettingsRepositoryTest {
         assertNull(settingsRepository.apiKey.first())
         assertEquals("gemini-3.5-flash-lite", settingsRepository.selectedModel.first())
         assertEquals(1L, settingsRepository.activePresetId.first())
+        assertEquals("None", settingsRepository.speakerAccent.first())
+        assertEquals("English", settingsRepository.spokenLanguage.first())
+    }
+
+    @Test
+    fun testSetSpeakerAccentAndLanguage() = runBlocking {
+        settingsRepository.setSpeakerAccent("Afrikaans")
+        assertEquals("Afrikaans", settingsRepository.speakerAccent.first())
+
+        settingsRepository.setSpokenLanguage("German")
+        assertEquals("German", settingsRepository.spokenLanguage.first())
     }
 
     @Test

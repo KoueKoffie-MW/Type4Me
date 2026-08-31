@@ -153,6 +153,8 @@ class DefaultGenAiSdkGenerator : GeminiContentGenerator {
 class GeminiRemoteRewriter(
     private val apiKeyProvider: suspend () -> String?,
     private val modelProvider: suspend () -> String = { MODEL_GEMINI_3_5_FLASH_LITE },
+    private val accentProvider: suspend () -> String? = { null },
+    private val languageProvider: suspend () -> String? = { null },
     private val generator: GeminiContentGenerator = DefaultGenAiSdkGenerator()
 ) : TextRewriter {
 
@@ -163,6 +165,22 @@ class GeminiRemoteRewriter(
     ) : this(
         apiKeyProvider = apiKeyProvider,
         modelProvider = { model },
+        accentProvider = { null },
+        languageProvider = { null },
+        generator = generator
+    )
+
+    constructor(
+        apiKeyProvider: suspend () -> String?,
+        model: String,
+        accentProvider: suspend () -> String?,
+        languageProvider: suspend () -> String?,
+        generator: GeminiContentGenerator = DefaultGenAiSdkGenerator()
+    ) : this(
+        apiKeyProvider = apiKeyProvider,
+        modelProvider = { model },
+        accentProvider = accentProvider,
+        languageProvider = languageProvider,
         generator = generator
     )
 
@@ -184,6 +202,16 @@ class GeminiRemoteRewriter(
         }
 
         val activeModel = modelProvider()
+        val accent = accentProvider()?.takeIf { it.isNotBlank() && !it.equals("None", ignoreCase = true) }
+        val language = languageProvider()?.takeIf { it.isNotBlank() } ?: "English"
+
+        val effectiveSystemPrompt = if (accent != null) {
+            val phoneticClause = "NOTE ON ACOUSTIC / ASR PHONETICS: The input text was transcribed via automated speech recognition from a speaker with an $accent accent speaking $language. " +
+                "Based on the surrounding context, intelligently identify, reconstruct, and fix typical phonetic ASR mis-transcriptions, vowel shifts, dropped consonants, and homophonic misunderstandings common to this accent (for example, recognizing domain terminology, false cognates, or phonetic approximations)."
+            "${preset.systemPrompt}\n\n$phoneticClause"
+        } else {
+            preset.systemPrompt
+        }
 
         return runCatching {
             val userPrompt = preset.formatUserPrompt(text)
@@ -191,7 +219,7 @@ class GeminiRemoteRewriter(
                 apiKey = apiKey,
                 model = activeModel,
                 prompt = userPrompt,
-                systemInstruction = preset.systemPrompt,
+                systemInstruction = effectiveSystemPrompt,
                 temperature = preset.temperature
             )
         }

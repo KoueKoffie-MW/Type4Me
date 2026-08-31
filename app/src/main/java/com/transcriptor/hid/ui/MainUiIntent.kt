@@ -107,7 +107,17 @@ sealed interface MainUiIntent {
     data class SelectModel(val model: String) : MainUiIntent
 
     /**
-     * Persists the current settings (API key and selected model) to DataStore.
+     * Fired when the speaker accent selection or input changes (e.g. "Afrikaans", "German").
+     */
+    data class UpdateSpeakerAccent(val accent: String) : MainUiIntent
+
+    /**
+     * Fired when the spoken language selection or input changes (e.g. "English", "German").
+     */
+    data class UpdateSpokenLanguage(val language: String) : MainUiIntent
+
+    /**
+     * Persists the current settings (API key, model, accent, language) to DataStore.
      */
     object SaveSettings : MainUiIntent
 

@@ -49,12 +49,24 @@ interface SettingsRepository {
      */
     val activePresetId: Flow<Long>
 
+    /**
+     * User's native spoken accent or dialect (e.g. "Afrikaans", "German", "None").
+     */
+    val speakerAccent: Flow<String>
+
+    /**
+     * Primary language being spoken for transcription (e.g. "English", "German", "Afrikaans").
+     */
+    val spokenLanguage: Flow<String>
+
     suspend fun setKeyLayout(layout: KeyLayout)
     suspend fun setTypingDelayMs(delayMs: Long)
     suspend fun setLiveDiffModeEnabled(enabled: Boolean)
     suspend fun setApiKey(apiKey: String)
     suspend fun setSelectedModel(model: String)
     suspend fun setActivePresetId(id: Long)
+    suspend fun setSpeakerAccent(accent: String)
+    suspend fun setSpokenLanguage(language: String)
 
     companion object {
         val DEFAULT_KEY_LAYOUT = KeyLayout.GERMAN_QWERTZ
@@ -62,6 +74,8 @@ interface SettingsRepository {
         const val DEFAULT_LIVE_DIFF_ENABLED = false
         const val DEFAULT_MODEL = "gemini-3.5-flash-lite"
         const val DEFAULT_ACTIVE_PRESET_ID = 1L
+        const val DEFAULT_SPEAKER_ACCENT = "None"
+        const val DEFAULT_SPOKEN_LANGUAGE = "English"
     }
 }
 
@@ -79,6 +93,8 @@ class DataStoreSettingsRepository(
         val API_KEY = stringPreferencesKey("gemini_api_key")
         val SELECTED_MODEL = stringPreferencesKey("selected_model")
         val ACTIVE_PRESET_ID = longPreferencesKey("active_preset_id")
+        val SPEAKER_ACCENT = stringPreferencesKey("speaker_accent")
+        val SPOKEN_LANGUAGE = stringPreferencesKey("spoken_language")
     }
 
     override val keyLayout: Flow<KeyLayout> = dataStore.data
@@ -138,6 +154,22 @@ class DataStoreSettingsRepository(
             preferences[PreferencesKeys.ACTIVE_PRESET_ID] ?: SettingsRepository.DEFAULT_ACTIVE_PRESET_ID
         }
 
+    override val speakerAccent: Flow<String> = dataStore.data
+        .catch { exception ->
+            if (exception is IOException) emit(emptyPreferences()) else throw exception
+        }
+        .map { preferences ->
+            preferences[PreferencesKeys.SPEAKER_ACCENT] ?: SettingsRepository.DEFAULT_SPEAKER_ACCENT
+        }
+
+    override val spokenLanguage: Flow<String> = dataStore.data
+        .catch { exception ->
+            if (exception is IOException) emit(emptyPreferences()) else throw exception
+        }
+        .map { preferences ->
+            preferences[PreferencesKeys.SPOKEN_LANGUAGE] ?: SettingsRepository.DEFAULT_SPOKEN_LANGUAGE
+        }
+
     override suspend fun setKeyLayout(layout: KeyLayout) {
         dataStore.edit { preferences ->
             preferences[PreferencesKeys.KEY_LAYOUT] = layout.name
@@ -173,6 +205,18 @@ class DataStoreSettingsRepository(
             preferences[PreferencesKeys.ACTIVE_PRESET_ID] = id
         }
     }
+
+    override suspend fun setSpeakerAccent(accent: String) {
+        dataStore.edit { preferences ->
+            preferences[PreferencesKeys.SPEAKER_ACCENT] = accent
+        }
+    }
+
+    override suspend fun setSpokenLanguage(language: String) {
+        dataStore.edit { preferences ->
+            preferences[PreferencesKeys.SPOKEN_LANGUAGE] = language
+        }
+    }
 }
 
 /**
@@ -184,7 +228,9 @@ class InMemorySettingsRepository(
     initialLiveDiffEnabled: Boolean = SettingsRepository.DEFAULT_LIVE_DIFF_ENABLED,
     initialApiKey: String? = null,
     initialModel: String = SettingsRepository.DEFAULT_MODEL,
-    initialActivePresetId: Long = SettingsRepository.DEFAULT_ACTIVE_PRESET_ID
+    initialActivePresetId: Long = SettingsRepository.DEFAULT_ACTIVE_PRESET_ID,
+    initialSpeakerAccent: String = SettingsRepository.DEFAULT_SPEAKER_ACCENT,
+    initialSpokenLanguage: String = SettingsRepository.DEFAULT_SPOKEN_LANGUAGE
 ) : SettingsRepository {
 
     private val _keyLayout = MutableStateFlow(initialKeyLayout)
@@ -204,6 +250,12 @@ class InMemorySettingsRepository(
 
     private val _activePresetId = MutableStateFlow(initialActivePresetId)
     override val activePresetId: Flow<Long> = _activePresetId.asStateFlow()
+
+    private val _speakerAccent = MutableStateFlow(initialSpeakerAccent)
+    override val speakerAccent: Flow<String> = _speakerAccent.asStateFlow()
+
+    private val _spokenLanguage = MutableStateFlow(initialSpokenLanguage)
+    override val spokenLanguage: Flow<String> = _spokenLanguage.asStateFlow()
 
     override suspend fun setKeyLayout(layout: KeyLayout) {
         _keyLayout.value = layout
@@ -227,5 +279,13 @@ class InMemorySettingsRepository(
 
     override suspend fun setActivePresetId(id: Long) {
         _activePresetId.value = id
+    }
+
+    override suspend fun setSpeakerAccent(accent: String) {
+        _speakerAccent.value = accent
+    }
+
+    override suspend fun setSpokenLanguage(language: String) {
+        _spokenLanguage.value = language
     }
 }

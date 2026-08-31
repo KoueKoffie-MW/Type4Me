@@ -63,6 +63,24 @@ You can create unlimited custom presets directly inside the app:
 
 ---
 
+## 🎙️ Speaker Accent & Phonetic Adaptation (Contextual ASR Repair)
+
+Automated Speech Recognition (ASR) engines often misinterpret non-native accents, specialized engineering terminology, or fast multilingual speech. 
+
+For example:
+* An **Afrikaans** speaker dictating English might have *"think"* transcribed as *"sink"*, *"deadlock"* as *"datelock"*, or *"variable"* as *"weriable"*.
+* A **German** speaker might have *"would"* transcribed as *"vould"*, *"work"* as *"vork"*, or *"actual"* as *"current"* (*aktuell*).
+
+### How Type4Me Adapts:
+In **Settings (⚙️)**, select your **Native Accent** (e.g. 🇿🇦 *Afrikaans / South African*, 🇩🇪 *German*, 🇳🇱 *Dutch*, 🇫🇷 *French*, 🇮🇳 *Indian*, or a *Custom Accent*) and **Spoken Language**.
+
+Whenever an accent is configured, the AI prompt engine injects a dedicated acoustic adaptation instruction:
+> *"NOTE ON ACOUSTIC / ASR PHONETICS: The input text was transcribed via automated speech recognition from a speaker with an {accent} accent speaking {language}. Based on the surrounding context, intelligently identify, reconstruct, and fix typical phonetic ASR mis-transcriptions, vowel shifts, dropped consonants, and homophonic misunderstandings common to this accent (for example, recognizing domain terminology, false cognates, or phonetic approximations)."*
+
+This enables Gemini to use sentence-level semantic context to reconstruct what you *intended* to say, producing flawless prompts regardless of regional phonetics.
+
+---
+
 ## ⚡ Recommended Model: Gemini 3.5 Flash-Lite
 
 Under **Settings (⚙️)**, Type4Me supports the following models:

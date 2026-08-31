@@ -46,7 +46,11 @@ data class MainUiState(
     val isApiKeyValid: Boolean? = null,
     val isHostConnectDialogOpen: Boolean = false,
     val pairedDevices: List<PairedDeviceUi> = emptyList(),
-    val activeMode: AppMode = AppMode.KEYBOARD
+    val activeMode: AppMode = AppMode.KEYBOARD,
+    val speakerAccent: String = "None",
+    val spokenLanguage: String = "English",
+    val speakerAccentInput: String = "None",
+    val spokenLanguageInput: String = "English"
 ) {
     /**
      * Calculated word count for dictation telemetry.

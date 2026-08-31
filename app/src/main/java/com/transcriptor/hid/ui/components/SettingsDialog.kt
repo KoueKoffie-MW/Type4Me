@@ -75,18 +75,34 @@ fun SettingsDialog(
     apiKey: String,
     isApiKeyVisible: Boolean,
     selectedModel: String,
+    speakerAccent: String,
+    spokenLanguage: String,
     isTestingApiKey: Boolean,
     feedbackMessage: String?,
     isApiKeyValid: Boolean?,
     onApiKeyChange: (String) -> Unit,
     onToggleApiKeyVisibility: () -> Unit,
     onModelSelect: (String) -> Unit,
+    onSpeakerAccentChange: (String) -> Unit,
+    onSpokenLanguageChange: (String) -> Unit,
     onTestApiKey: () -> Unit,
     onSave: () -> Unit,
     onDismiss: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     val scrollState = rememberScrollState()
+
+    val accentPresets = listOf(
+        AccentOption(id = "None", label = "🌐 Neutral / None", description = "No acoustic adjustments applied"),
+        AccentOption(id = "Afrikaans", label = "🇿🇦 Afrikaans / SA", description = "Fixes Afrikaans vowel shifts & terminology"),
+        AccentOption(id = "German", label = "🇩🇪 German", description = "Fixes w/v shifts, th/s, and German cognates"),
+        AccentOption(id = "Dutch", label = "🇳🇱 Dutch", description = "Fixes Dutch phonetic substitutions"),
+        AccentOption(id = "French", label = "🇫🇷 French", description = "Fixes h-dropping and French vowel patterns"),
+        AccentOption(id = "Indian", label = "🇮🇳 Indian", description = "Fixes retroflex consonants & Indian phrasing"),
+        AccentOption(id = "Spanish", label = "🇪🇸 Spanish", description = "Fixes initial s-clusters (e.g. estatus -> status)")
+    )
+
+    val isCustomAccent = accentPresets.none { it.id.equals(speakerAccent, ignoreCase = true) } && speakerAccent.isNotBlank()
 
     val modelOptions = listOf(
         ModelOption(
@@ -203,44 +219,33 @@ fun SettingsDialog(
                         },
                         modifier = Modifier
                             .fillMaxWidth()
-                            .defaultMinSize(minHeight = 48.dp)
+                            .defaultMinSize(minHeight = 48.dp),
+                        shape = RoundedCornerShape(12.dp)
                     )
 
-                    // Test API Key Button
+                    // Test Connection Button
                     OutlinedButton(
                         onClick = onTestApiKey,
                         enabled = apiKey.isNotBlank() && !isTestingApiKey,
                         modifier = Modifier
                             .fillMaxWidth()
-                            .defaultMinSize(minHeight = 48.dp),
-                        shape = RoundedCornerShape(10.dp),
-                        colors = ButtonDefaults.outlinedButtonColors(
-                            contentColor = ElectricViolet
-                        )
+                            .defaultMinSize(minHeight = 44.dp),
+                        shape = RoundedCornerShape(10.dp)
                     ) {
                         if (isTestingApiKey) {
                             CircularProgressIndicator(
-                                modifier = Modifier.size(18.dp),
+                                modifier = Modifier.size(16.dp),
                                 strokeWidth = 2.dp,
-                                color = ElectricViolet
+                                color = MaterialTheme.colorScheme.primary
                             )
                             Spacer(modifier = Modifier.width(8.dp))
-                            Text("Testing API Key...")
+                            Text(text = "Testing Connection...")
                         } else {
-                            Icon(
-                                imageVector = Icons.Default.CheckCircle,
-                                contentDescription = "Test Key",
-                                modifier = Modifier.size(18.dp)
-                            )
-                            Spacer(modifier = Modifier.width(8.dp))
-                            Text(
-                                text = "Test Gemini Connection",
-                                style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.SemiBold)
-                            )
+                            Text(text = "Test Gemini Connection")
                         }
                     }
 
-                    // Test Feedback Banner
+                    // Test Result Feedback Banner
                     if (feedbackMessage != null) {
                         val (bannerBg, bannerBorder, bannerIcon, iconTint) = when (isApiKeyValid) {
                             true -> Quad(
@@ -296,7 +301,170 @@ fun SettingsDialog(
 
                 HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
 
-                // Section 2: Gemini Model Selection
+                // Section 2: Speaker Accent & Phonetic Adaptation
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(6.dp)
+                    ) {
+                        Text(
+                            text = "🎙️",
+                            fontSize = 16.sp
+                        )
+                        Text(
+                            text = "Speaker Accent & Phonetic Adaptation",
+                            style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.SemiBold),
+                            color = MaterialTheme.colorScheme.onSurface
+                        )
+                    }
+
+                    Text(
+                        text = "Instructs Gemini to contextualize and repair typical ASR phonetic errors, vowel shifts, and misunderstandings common to your accent.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+
+                    // Spoken Language Input
+                    OutlinedTextField(
+                        value = spokenLanguage,
+                        onValueChange = onSpokenLanguageChange,
+                        label = { Text("Spoken Language") },
+                        placeholder = { Text("e.g. English, German, Afrikaans") },
+                        singleLine = true,
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(12.dp)
+                    )
+
+                    Text(
+                        text = "Your Native Accent / Dialect:",
+                        style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Medium),
+                        color = MaterialTheme.colorScheme.onSurface
+                    )
+
+                    Column(
+                        modifier = Modifier.selectableGroup(),
+                        verticalArrangement = Arrangement.spacedBy(6.dp)
+                    ) {
+                        accentPresets.forEach { preset ->
+                            val isSelected = !isCustomAccent && (preset.id.equals(speakerAccent, ignoreCase = true) || (preset.id == "None" && speakerAccent.isBlank()))
+
+                            Surface(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .clip(RoundedCornerShape(10.dp))
+                                    .border(
+                                        width = if (isSelected) 1.5.dp else 1.dp,
+                                        color = if (isSelected) ElectricViolet else MaterialTheme.colorScheme.outlineVariant,
+                                        shape = RoundedCornerShape(10.dp)
+                                    )
+                                    .selectable(
+                                        selected = isSelected,
+                                        onClick = { onSpeakerAccentChange(preset.id) },
+                                        role = Role.RadioButton
+                                    ),
+                                color = if (isSelected) ElectricViolet.copy(alpha = 0.12f) else MaterialTheme.colorScheme.surfaceContainerLowest,
+                                shape = RoundedCornerShape(10.dp)
+                            ) {
+                                Row(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(horizontal = 10.dp, vertical = 8.dp),
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                ) {
+                                    RadioButton(
+                                        selected = isSelected,
+                                        onClick = null,
+                                        colors = RadioButtonDefaults.colors(
+                                            selectedColor = ElectricViolet,
+                                            unselectedColor = MaterialTheme.colorScheme.onSurfaceVariant
+                                        ),
+                                        modifier = Modifier.size(18.dp)
+                                    )
+                                    Column(modifier = Modifier.weight(1f)) {
+                                        Text(
+                                            text = preset.label,
+                                            style = MaterialTheme.typography.bodyMedium.copy(
+                                                fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium
+                                            ),
+                                            color = MaterialTheme.colorScheme.onSurface
+                                        )
+                                        Text(
+                                            text = preset.description,
+                                            style = MaterialTheme.typography.bodySmall.copy(fontSize = 11.sp),
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                                        )
+                                    }
+                                }
+                            }
+                        }
+
+                        // Custom Accent Option
+                        Surface(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clip(RoundedCornerShape(10.dp))
+                                .border(
+                                    width = if (isCustomAccent) 1.5.dp else 1.dp,
+                                    color = if (isCustomAccent) ElectricViolet else MaterialTheme.colorScheme.outlineVariant,
+                                    shape = RoundedCornerShape(10.dp)
+                                )
+                                .selectable(
+                                    selected = isCustomAccent,
+                                    onClick = { if (!isCustomAccent) onSpeakerAccentChange("Custom") },
+                                    role = Role.RadioButton
+                                ),
+                            color = if (isCustomAccent) ElectricViolet.copy(alpha = 0.12f) else MaterialTheme.colorScheme.surfaceContainerLowest,
+                            shape = RoundedCornerShape(10.dp)
+                        ) {
+                            Column(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(horizontal = 10.dp, vertical = 8.dp),
+                                verticalArrangement = Arrangement.spacedBy(6.dp)
+                            ) {
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                ) {
+                                    RadioButton(
+                                        selected = isCustomAccent,
+                                        onClick = null,
+                                        colors = RadioButtonDefaults.colors(
+                                            selectedColor = ElectricViolet,
+                                            unselectedColor = MaterialTheme.colorScheme.onSurfaceVariant
+                                        ),
+                                        modifier = Modifier.size(18.dp)
+                                    )
+                                    Text(
+                                        text = "✏️ Custom Accent / Dialect",
+                                        style = MaterialTheme.typography.bodyMedium.copy(
+                                            fontWeight = if (isCustomAccent) FontWeight.Bold else FontWeight.Medium
+                                        ),
+                                        color = MaterialTheme.colorScheme.onSurface
+                                    )
+                                }
+
+                                if (isCustomAccent) {
+                                    OutlinedTextField(
+                                        value = if (speakerAccent == "Custom") "" else speakerAccent,
+                                        onValueChange = onSpeakerAccentChange,
+                                        placeholder = { Text("e.g. Scottish, Bavarian, Swiss-German") },
+                                        singleLine = true,
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .padding(start = 26.dp),
+                                        shape = RoundedCornerShape(8.dp)
+                                    )
+                                }
+                            }
+                        }
+                    }
+                }
+
+                HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
+
+                // Section 3: Gemini Model Selection
                 Column(
                     modifier = Modifier.selectableGroup(),
                     verticalArrangement = Arrangement.spacedBy(8.dp)
@@ -436,6 +604,12 @@ private data class ModelOption(
     val title: String,
     val subtitle: String,
     val tag: String
+)
+
+private data class AccentOption(
+    val id: String,
+    val label: String,
+    val description: String
 )
 
 private data class Quad<A, B, C, D>(val first: A, val second: B, val third: C, val fourth: D)

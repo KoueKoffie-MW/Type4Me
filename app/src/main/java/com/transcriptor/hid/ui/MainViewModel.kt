@@ -90,6 +90,30 @@ open class MainViewModel(
         }
 
         scope.launch {
+            settingsRepository.speakerAccent.collect { accent ->
+                _uiState.update { current ->
+                    if (!current.isSettingsOpen) {
+                        current.copy(speakerAccent = accent, speakerAccentInput = accent)
+                    } else {
+                        current.copy(speakerAccent = accent)
+                    }
+                }
+            }
+        }
+
+        scope.launch {
+            settingsRepository.spokenLanguage.collect { language ->
+                _uiState.update { current ->
+                    if (!current.isSettingsOpen) {
+                        current.copy(spokenLanguage = language, spokenLanguageInput = language)
+                    } else {
+                        current.copy(spokenLanguage = language)
+                    }
+                }
+            }
+        }
+
+        scope.launch {
             settingsRepository.liveDiffModeEnabled.collect { enabled ->
                 _uiState.update { it.copy(liveDiffEnabled = enabled) }
             }
@@ -157,6 +181,8 @@ open class MainViewModel(
             is MainUiIntent.UpdateApiKey -> handleUpdateApiKey(intent.apiKey)
             is MainUiIntent.ToggleApiKeyVisibility -> handleToggleApiKeyVisibility()
             is MainUiIntent.SelectModel -> handleSelectModel(intent.model)
+            is MainUiIntent.UpdateSpeakerAccent -> handleUpdateSpeakerAccent(intent.accent)
+            is MainUiIntent.UpdateSpokenLanguage -> handleUpdateSpokenLanguage(intent.language)
             is MainUiIntent.SaveSettings -> handleSaveSettings()
             is MainUiIntent.TestApiKey -> handleTestApiKey()
             is MainUiIntent.OpenHostConnectDialog -> handleOpenHostConnectDialog()
@@ -376,6 +402,8 @@ open class MainViewModel(
         _uiState.update {
             it.copy(
                 isSettingsOpen = true,
+                speakerAccentInput = it.speakerAccent,
+                spokenLanguageInput = it.spokenLanguage,
                 settingsFeedbackMessage = null,
                 isApiKeyValid = null
             )
@@ -386,6 +414,8 @@ open class MainViewModel(
         _uiState.update {
             it.copy(
                 isSettingsOpen = false,
+                speakerAccentInput = it.speakerAccent,
+                spokenLanguageInput = it.spokenLanguage,
                 settingsFeedbackMessage = null,
                 isApiKeyValid = null
             )
@@ -410,15 +440,29 @@ open class MainViewModel(
         _uiState.update { it.copy(selectedModel = model) }
     }
 
+    private fun handleUpdateSpeakerAccent(accent: String) {
+        _uiState.update { it.copy(speakerAccentInput = accent) }
+    }
+
+    private fun handleUpdateSpokenLanguage(language: String) {
+        _uiState.update { it.copy(spokenLanguageInput = language) }
+    }
+
     private fun handleSaveSettings() {
         val key = _uiState.value.apiKeyInput.trim()
         val model = _uiState.value.selectedModel
+        val accent = _uiState.value.speakerAccentInput.trim()
+        val language = _uiState.value.spokenLanguageInput.trim().ifBlank { "English" }
         scope.launch {
             settingsRepository.setApiKey(key)
             settingsRepository.setSelectedModel(model)
+            settingsRepository.setSpeakerAccent(accent)
+            settingsRepository.setSpokenLanguage(language)
             _uiState.update {
                 it.copy(
                     isSettingsOpen = false,
+                    speakerAccent = accent,
+                    spokenLanguage = language,
                     settingsFeedbackMessage = null,
                     isApiKeyValid = null
                 )

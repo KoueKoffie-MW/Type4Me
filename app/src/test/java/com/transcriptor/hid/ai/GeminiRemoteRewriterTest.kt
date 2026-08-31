@@ -155,6 +155,48 @@ class GeminiRemoteRewriterTest {
     }
 
     @Test
+    fun testAccentAndLanguageAdaptationEnrichesSystemInstruction() = runBlocking {
+        var capturedSystemInstruction = ""
+        val rewriter = GeminiRemoteRewriter(
+            apiKeyProvider = { "valid-api-key" },
+            modelProvider = { GeminiRemoteRewriter.MODEL_GEMINI_3_5_FLASH_LITE },
+            accentProvider = { "Afrikaans" },
+            languageProvider = { "English" },
+            generator = { _, _, _, systemInstruction, _ ->
+                capturedSystemInstruction = systemInstruction
+                "Corrected text"
+            }
+        )
+
+        val result = rewriter.rewrite("I sink this is good", PromptPreset.CLEAN_AND_POLISH)
+        assertTrue(result.isSuccess)
+        assertTrue(capturedSystemInstruction.contains(PromptPreset.CLEAN_AND_POLISH.systemPrompt))
+        assertTrue(capturedSystemInstruction.contains("NOTE ON ACOUSTIC / ASR PHONETICS"))
+        assertTrue(capturedSystemInstruction.contains("Afrikaans accent speaking English"))
+        assertTrue(capturedSystemInstruction.contains("fix typical phonetic ASR mis-transcriptions"))
+    }
+
+    @Test
+    fun testNoneAccentLeavesSystemInstructionUnmodified() = runBlocking {
+        var capturedSystemInstruction = ""
+        val rewriter = GeminiRemoteRewriter(
+            apiKeyProvider = { "valid-api-key" },
+            modelProvider = { GeminiRemoteRewriter.MODEL_GEMINI_3_5_FLASH_LITE },
+            accentProvider = { "None" },
+            languageProvider = { "English" },
+            generator = { _, _, _, systemInstruction, _ ->
+                capturedSystemInstruction = systemInstruction
+                "Standard output"
+            }
+        )
+
+        val result = rewriter.rewrite("Testing standard speech", PromptPreset.CLEAN_AND_POLISH)
+        assertTrue(result.isSuccess)
+        assertEquals(PromptPreset.CLEAN_AND_POLISH.systemPrompt, capturedSystemInstruction)
+        assertFalse(capturedSystemInstruction.contains("NOTE ON ACOUSTIC"))
+    }
+
+    @Test
     fun testLiteRtOnDeviceRewriterPromptFormattingAndExecution() = runBlocking {
         var capturedPrompt = ""
         val rewriter = LiteRtOnDeviceRewriter(

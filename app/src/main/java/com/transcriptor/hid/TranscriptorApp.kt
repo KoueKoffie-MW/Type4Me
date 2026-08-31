@@ -69,10 +69,12 @@ class TranscriptorApp : Application() {
         // 3. Initialize DataStore Settings Repository
         settingsRepository = DataStoreSettingsRepository(dataStore)
 
-        // 4. Initialize Google GenAI Rewriter with dynamic model pickup
+        // 4. Initialize Google GenAI Rewriter with dynamic model, accent, and language pickup
         textRewriter = GeminiRemoteRewriter(
             apiKeyProvider = { settingsRepository.apiKey.first() },
-            modelProvider = { settingsRepository.selectedModel.first() }
+            modelProvider = { settingsRepository.selectedModel.first() },
+            accentProvider = { settingsRepository.speakerAccent.first() },
+            languageProvider = { settingsRepository.spokenLanguage.first() }
         )
 
         // 5. Initialize Bluetooth HID Transport & Dispatcher
