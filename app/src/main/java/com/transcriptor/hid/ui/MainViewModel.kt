@@ -2,6 +2,7 @@ package com.transcriptor.hid.ui
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.transcriptor.hid.ai.GeminiRemoteRewriter
 import com.transcriptor.hid.ai.PromptPreset
 import com.transcriptor.hid.ai.TextRewriter
 import com.transcriptor.hid.data.PresetRepository
@@ -472,6 +473,7 @@ open class MainViewModel(
 
     private fun handleTestApiKey() {
         val key = _uiState.value.apiKeyInput.trim()
+        val model = _uiState.value.selectedModel
         if (key.isBlank()) {
             _uiState.update {
                 it.copy(
@@ -492,14 +494,20 @@ open class MainViewModel(
         }
 
         scope.launch {
-            val testPreset = PromptPreset(
-                id = 9999L,
-                title = "Test",
-                description = "Test Gemini API key validity",
-                systemPrompt = "Respond with 'OK'",
-                temperature = 0.0f
-            )
-            val result = textRewriter.rewrite("Test connection", testPreset)
+            val result = if (textRewriter is GeminiRemoteRewriter) {
+                (textRewriter as GeminiRemoteRewriter).testApiKey(key, model)
+            } else {
+                runCatching {
+                    val testPreset = PromptPreset(
+                        id = 9999L,
+                        title = "Test",
+                        description = "Test Gemini API key validity",
+                        systemPrompt = "Respond with 'OK'",
+                        temperature = 0.0f
+                    )
+                    textRewriter.rewrite("Test connection", testPreset).getOrThrow()
+                }
+            }
             result.onSuccess {
                 _uiState.update {
                     it.copy(

@@ -225,14 +225,34 @@ class GeminiRemoteRewriter(
         }
     }
 
+    /**
+     * Directly tests a candidate [apiKey] by making a minimal health-check call.
+     */
+    suspend fun testApiKey(apiKey: String, model: String = MODEL_GEMINI_3_5_FLASH_LITE): Result<String> {
+        if (apiKey.isBlank()) {
+            return Result.failure(IllegalArgumentException("API key cannot be blank."))
+        }
+        return runCatching {
+            generator.generate(
+                apiKey = apiKey,
+                model = model,
+                prompt = "Respond with 'OK'",
+                systemInstruction = "You are a health check assistant. Respond with 'OK'.",
+                temperature = 0.0f
+            )
+        }
+    }
+
     companion object {
         const val MODEL_GEMINI_3_5_FLASH_LITE = "gemini-3.5-flash-lite"
+        const val MODEL_GEMINI_3_6_FLASH = "gemini-3.6-flash"
         const val MODEL_GEMINI_3_FLASH_PREVIEW = "gemini-3-flash-preview"
         const val MODEL_GEMINI_3_1_FLASH_LITE = "gemini-3.1-flash-lite"
         const val MODEL_GEMINI_3_7_FLASH = "gemini-3.7-flash"
 
         val SUPPORTED_MODELS = listOf(
             MODEL_GEMINI_3_5_FLASH_LITE,
+            MODEL_GEMINI_3_6_FLASH,
             MODEL_GEMINI_3_FLASH_PREVIEW,
             MODEL_GEMINI_3_1_FLASH_LITE,
             MODEL_GEMINI_3_7_FLASH

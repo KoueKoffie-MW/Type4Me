@@ -112,16 +112,16 @@ fun SettingsDialog(
             tag = "Default"
         ),
         ModelOption(
-            id = GeminiRemoteRewriter.MODEL_GEMINI_3_FLASH_PREVIEW,
-            title = "Gemini 3 Flash Preview",
-            subtitle = "Balanced fast reasoning (~2s)",
-            tag = "Fast"
+            id = GeminiRemoteRewriter.MODEL_GEMINI_3_6_FLASH,
+            title = "Gemini 3.6 Flash",
+            subtitle = "Balanced high-accuracy reasoning (~1.2s)",
+            tag = "Flash"
         ),
         ModelOption(
-            id = GeminiRemoteRewriter.MODEL_GEMINI_3_1_FLASH_LITE,
-            title = "Gemini 3.1 Flash-Lite",
-            subtitle = "Lightweight speech assistant",
-            tag = "Lite"
+            id = GeminiRemoteRewriter.MODEL_GEMINI_3_FLASH_PREVIEW,
+            title = "Gemini 3 Flash Preview",
+            subtitle = "Fast multimodal reasoning (~2s)",
+            tag = "Preview"
         ),
         ModelOption(
             id = GeminiRemoteRewriter.MODEL_GEMINI_3_7_FLASH,
