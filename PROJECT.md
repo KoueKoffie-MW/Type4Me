@@ -42,3 +42,10 @@
 - `docs/` (`ARCHITECTURE.md`, `TOUCHPAD_GUIDE.md`, `PROMPT_ENGINEERING.md`, `HARDWARE_COMPATIBILITY.md`)
 - `app/src/test/java/com/transcriptor/hid/` (135 JVM Unit tests)
 - `tests/e2e/` (301 Python E2E protocol tests)
+
+## Versioning & Release Policy
+- **Scheme**: Strict Semantic Versioning `MAJOR.MINOR.PATCH` with synchronized Android integer `versionCode`.
+- **Every Commit**: Automatically bumps the **PATCH** version (e.g. `1.1.0` -> `1.1.1`) and increments `versionCode` by 1.
+- **Every Push / Release Milestone**: Bumps the **MINOR** version (e.g. `1.1.x` -> `1.2.0`) and increments `versionCode`.
+- **Architectural Overhaul**: Bumps the **MAJOR** version (e.g. `2.0.0`).
+- **Zero-Key Policy**: Distributed release binaries and git commits MUST NEVER contain hardcoded personal API keys. Keys reside strictly within the local runtime DataStore or uncommitted developer configs.
