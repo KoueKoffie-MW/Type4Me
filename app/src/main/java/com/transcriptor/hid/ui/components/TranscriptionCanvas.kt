@@ -34,10 +34,20 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.relocation.BringIntoViewRequester
+import androidx.compose.foundation.relocation.bringIntoViewRequester
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.focus.onFocusEvent
+import kotlinx.coroutines.launch
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
@@ -58,6 +68,7 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import com.transcriptor.hid.ui.theme.TextPrimary
 
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun TranscriptionCanvas(
     state: MainUiState,
@@ -68,6 +79,17 @@ fun TranscriptionCanvas(
     onUndoClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
+    val innerScrollState = rememberScrollState()
+    val bringIntoViewRequester = remember { BringIntoViewRequester() }
+    val coroutineScope = rememberCoroutineScope()
+
+    // Auto-scroll to the bottom of the canvas as dictated text expands
+    LaunchedEffect(state.transcriptionText.length) {
+        if (state.transcriptionText.isNotEmpty()) {
+            innerScrollState.animateScrollTo(innerScrollState.maxValue)
+        }
+    }
+
     Column(
         modifier = modifier.fillMaxWidth(),
         verticalArrangement = Arrangement.spacedBy(10.dp)
@@ -88,6 +110,7 @@ fun TranscriptionCanvas(
             Box(
                 modifier = Modifier
                     .fillMaxSize()
+                    .bringIntoViewRequester(bringIntoViewRequester)
                     .padding(16.dp)
             ) {
                 if (state.transcriptionText.isEmpty()) {
@@ -104,6 +127,14 @@ fun TranscriptionCanvas(
                     onValueChange = onTextChange,
                     modifier = Modifier
                         .fillMaxSize()
+                        .verticalScroll(innerScrollState)
+                        .onFocusEvent { focusState ->
+                            if (focusState.isFocused) {
+                                coroutineScope.launch {
+                                    bringIntoViewRequester.bringIntoView()
+                                }
+                            }
+                        }
                         .semantics {
                             contentDescription = "Voice and text transcription canvas editor"
                         },
