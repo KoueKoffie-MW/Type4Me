@@ -72,12 +72,13 @@ For example:
 * A **German** speaker might have *"would"* transcribed as *"vould"*, *"work"* as *"vork"*, or *"actual"* as *"current"* (*aktuell*).
 
 ### How Type4Me Adapts:
-In **Settings (⚙️)**, select your **Native Accent** (e.g. 🇿🇦 *Afrikaans / South African*, 🇩🇪 *German*, 🇳🇱 *Dutch*, 🇫🇷 *French*, 🇮🇳 *Indian*, or a *Custom Accent*) and **Spoken Language**.
+In **Settings (⚙️)**, select your **Native Accent** (e.g. 🇿🇦 *Afrikaans / South African*, 🇩🇪 *German*, 🇳🇱 *Dutch*, 🇫🇷 *French*, 🇮🇳 *Indian*, or a *Custom Accent*) and one or more **Spoken Languages** (e.g. 🇬🇧 *English* + 🇿🇦 *Afrikaans* + 🇩🇪 *German*).
 
-Whenever an accent is configured, the AI prompt engine injects a dedicated acoustic adaptation instruction:
-> *"NOTE ON ACOUSTIC / ASR PHONETICS: The input text was transcribed via automated speech recognition from a speaker with an {accent} accent speaking {language}. Based on the surrounding context, intelligently identify, reconstruct, and fix typical phonetic ASR mis-transcriptions, vowel shifts, dropped consonants, and homophonic misunderstandings common to this accent (for example, recognizing domain terminology, false cognates, or phonetic approximations)."*
+### 🔄 Multilingual Code-Switching Mode:
+When 2 or more languages are selected (e.g. *English + Afrikaans*), Type4Me activates **Code-Switching Adaptation**:
+> *"NOTE ON MULTILINGUAL CODE-SWITCHING & PHONETICS: The input text was transcribed via automated speech recognition from a multilingual speaker code-switching and alternating between English and Afrikaans with an Afrikaans accent. Intelligently recognize valid vocabulary, idioms, and technical terms across all these languages, reconstruct phonetic ASR mis-transcriptions and vowel shifts based on context, and fulfill the requested preset formatting."*
 
-This enables Gemini to use sentence-level semantic context to reconstruct what you *intended* to say, producing flawless prompts regardless of regional phonetics.
+This allows bilingual speakers to speak naturally without ASR stumbling over loanwords, technical jargon, or colloquial shifts between languages.
 
 ---
 

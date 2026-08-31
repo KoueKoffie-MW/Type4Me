@@ -203,14 +203,33 @@ class GeminiRemoteRewriter(
 
         val activeModel = modelProvider()
         val accent = accentProvider()?.takeIf { it.isNotBlank() && !it.equals("None", ignoreCase = true) }
-        val language = languageProvider()?.takeIf { it.isNotBlank() } ?: "English"
+        val languageRaw = languageProvider()?.takeIf { it.isNotBlank() } ?: "English"
+        val languageList = languageRaw.split(",").map { it.trim() }.filter { it.isNotBlank() }
+        val isMultilingual = languageList.size > 1
+        val languagesFormatted = when (languageList.size) {
+            0 -> "English"
+            1 -> languageList[0]
+            2 -> "${languageList[0]} and ${languageList[1]}"
+            else -> languageList.dropLast(1).joinToString(", ") + ", and " + languageList.last()
+        }
 
-        val effectiveSystemPrompt = if (accent != null) {
-            val phoneticClause = "NOTE ON ACOUSTIC / ASR PHONETICS: The input text was transcribed via automated speech recognition from a speaker with an $accent accent speaking $language. " +
-                "Based on the surrounding context, intelligently identify, reconstruct, and fix typical phonetic ASR mis-transcriptions, vowel shifts, dropped consonants, and homophonic misunderstandings common to this accent (for example, recognizing domain terminology, false cognates, or phonetic approximations)."
-            "${preset.systemPrompt}\n\n$phoneticClause"
-        } else {
-            preset.systemPrompt
+        val effectiveSystemPrompt = when {
+            isMultilingual && accent != null -> {
+                val multilingualClause = "NOTE ON MULTILINGUAL CODE-SWITCHING & PHONETICS: The input text was transcribed via automated speech recognition from a multilingual speaker code-switching and alternating between $languagesFormatted with an $accent accent. " +
+                    "Intelligently recognize valid vocabulary, idioms, and technical terms across all these languages, reconstruct phonetic ASR mis-transcriptions and vowel shifts based on context, and fulfill the requested preset formatting."
+                "${preset.systemPrompt}\n\n$multilingualClause"
+            }
+            isMultilingual && accent == null -> {
+                val multilingualClause = "NOTE ON MULTILINGUAL CODE-SWITCHING: The input text was transcribed via automated speech recognition from a multilingual speaker code-switching and alternating naturally between $languagesFormatted. " +
+                    "Intelligently recognize valid vocabulary, idioms, and technical terms across all these languages and fulfill the requested preset formatting."
+                "${preset.systemPrompt}\n\n$multilingualClause"
+            }
+            !isMultilingual && accent != null -> {
+                val phoneticClause = "NOTE ON ACOUSTIC / ASR PHONETICS: The input text was transcribed via automated speech recognition from a speaker with an $accent accent speaking ${languageList.firstOrNull() ?: "English"}. " +
+                    "Based on the surrounding context, intelligently identify, reconstruct, and fix typical phonetic ASR mis-transcriptions, vowel shifts, dropped consonants, and homophonic misunderstandings common to this accent (for example, recognizing domain terminology, false cognates, or phonetic approximations)."
+                "${preset.systemPrompt}\n\n$phoneticClause"
+            }
+            else -> preset.systemPrompt
         }
 
         return runCatching {

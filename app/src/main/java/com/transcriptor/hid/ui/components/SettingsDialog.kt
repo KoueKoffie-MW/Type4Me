@@ -27,12 +27,17 @@ import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Key
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.SmartToy
+import androidx.compose.material.icons.filled.Sync
 import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material.icons.filled.VisibilityOff
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.FilterChip
+import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -100,6 +105,15 @@ fun SettingsDialog(
         AccentOption(id = "French", label = "🇫🇷 French", description = "Fixes h-dropping and French vowel patterns"),
         AccentOption(id = "Indian", label = "🇮🇳 Indian", description = "Fixes retroflex consonants & Indian phrasing"),
         AccentOption(id = "Spanish", label = "🇪🇸 Spanish", description = "Fixes initial s-clusters (e.g. estatus -> status)")
+    )
+
+    val availableLanguages = listOf(
+        LanguageOption("English", "🇬🇧 English"),
+        LanguageOption("Afrikaans", "🇿🇦 Afrikaans"),
+        LanguageOption("German", "🇩🇪 German"),
+        LanguageOption("Dutch", "🇳🇱 Dutch"),
+        LanguageOption("French", "🇫🇷 French"),
+        LanguageOption("Spanish", "🇪🇸 Spanish")
     )
 
     val isCustomAccent = accentPresets.none { it.id.equals(speakerAccent, ignoreCase = true) } && speakerAccent.isNotBlank()
@@ -324,12 +338,87 @@ fun SettingsDialog(
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
 
+                    // Multi-Select Spoken Languages
+                    Text(
+                        text = "Spoken Language(s) & Code-Switching:",
+                        style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Medium),
+                        color = MaterialTheme.colorScheme.onSurface
+                    )
+
+                    val activeLanguageTokens = spokenLanguage
+                        .split(",")
+                        .map { it.trim() }
+                        .filter { it.isNotBlank() }
+                        .toSet()
+
+                    @OptIn(ExperimentalLayoutApi::class)
+                    FlowRow(
+                        horizontalArrangement = Arrangement.spacedBy(6.dp),
+                        verticalArrangement = Arrangement.spacedBy(6.dp),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        availableLanguages.forEach { lang ->
+                            val isSelected = activeLanguageTokens.any { it.equals(lang.id, ignoreCase = true) }
+                            FilterChip(
+                                selected = isSelected,
+                                onClick = {
+                                    val currentList = spokenLanguage
+                                        .split(",")
+                                        .map { it.trim() }
+                                        .filter { it.isNotBlank() }
+                                        .toMutableList()
+
+                                    if (isSelected) {
+                                        currentList.removeAll { it.equals(lang.id, ignoreCase = true) }
+                                        if (currentList.isEmpty()) {
+                                            currentList.add("English")
+                                        }
+                                    } else {
+                                        currentList.add(lang.id)
+                                    }
+                                    onSpokenLanguageChange(currentList.joinToString(", "))
+                                },
+                                label = { Text(lang.label, style = MaterialTheme.typography.bodySmall) },
+                                colors = FilterChipDefaults.filterChipColors(
+                                    selectedContainerColor = ElectricViolet.copy(alpha = 0.2f),
+                                    selectedLabelColor = ElectricViolet
+                                ),
+                                shape = RoundedCornerShape(8.dp)
+                            )
+                        }
+                    }
+
+                    if (activeLanguageTokens.size > 1) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(6.dp),
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clip(RoundedCornerShape(8.dp))
+                                .background(ElectricViolet.copy(alpha = 0.12f))
+                                .border(1.dp, ElectricViolet.copy(alpha = 0.3f), RoundedCornerShape(8.dp))
+                                .padding(horizontal = 10.dp, vertical = 6.dp)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Sync,
+                                contentDescription = null,
+                                tint = ElectricViolet,
+                                modifier = Modifier.size(16.dp)
+                            )
+                            Text(
+                                text = "🔄 Multilingual Code-Switching Active (${activeLanguageTokens.size} languages)",
+                                style = MaterialTheme.typography.bodySmall.copy(fontWeight = FontWeight.SemiBold),
+                                color = ElectricViolet
+                            )
+                        }
+                    }
+
                     // Spoken Language Input
                     OutlinedTextField(
                         value = spokenLanguage,
                         onValueChange = onSpokenLanguageChange,
-                        label = { Text("Spoken Language") },
-                        placeholder = { Text("e.g. English, German, Afrikaans") },
+                        label = { Text("Active Languages (Comma-separated)") },
+                        placeholder = { Text("e.g. English, Afrikaans, German") },
                         singleLine = true,
                         modifier = Modifier.fillMaxWidth(),
                         shape = RoundedCornerShape(12.dp)
@@ -610,6 +699,11 @@ private data class AccentOption(
     val id: String,
     val label: String,
     val description: String
+)
+
+private data class LanguageOption(
+    val id: String,
+    val label: String
 )
 
 private data class Quad<A, B, C, D>(val first: A, val second: B, val third: C, val fourth: D)

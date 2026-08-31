@@ -177,6 +177,48 @@ class GeminiRemoteRewriterTest {
     }
 
     @Test
+    fun testMultilingualCodeSwitchingWithAccentEnrichesSystemInstruction() = runBlocking {
+        var capturedSystemInstruction = ""
+        val rewriter = GeminiRemoteRewriter(
+            apiKeyProvider = { "valid-api-key" },
+            modelProvider = { GeminiRemoteRewriter.MODEL_GEMINI_3_5_FLASH_LITE },
+            accentProvider = { "Afrikaans" },
+            languageProvider = { "English, Afrikaans, German" },
+            generator = { _, _, _, systemInstruction, _ ->
+                capturedSystemInstruction = systemInstruction
+                "Corrected text"
+            }
+        )
+
+        val result = rewriter.rewrite("ons moet die model tune", PromptPreset.CLEAN_AND_POLISH)
+        assertTrue(result.isSuccess)
+        assertTrue(capturedSystemInstruction.contains("NOTE ON MULTILINGUAL CODE-SWITCHING & PHONETICS"))
+        assertTrue(capturedSystemInstruction.contains("English, Afrikaans, and German"))
+        assertTrue(capturedSystemInstruction.contains("Afrikaans accent"))
+        assertTrue(capturedSystemInstruction.contains("recognize valid vocabulary, idioms, and technical terms across all these languages"))
+    }
+
+    @Test
+    fun testMultilingualCodeSwitchingWithoutAccentEnrichesSystemInstruction() = runBlocking {
+        var capturedSystemInstruction = ""
+        val rewriter = GeminiRemoteRewriter(
+            apiKeyProvider = { "valid-api-key" },
+            modelProvider = { GeminiRemoteRewriter.MODEL_GEMINI_3_5_FLASH_LITE },
+            accentProvider = { "None" },
+            languageProvider = { "English, Afrikaans" },
+            generator = { _, _, _, systemInstruction, _ ->
+                capturedSystemInstruction = systemInstruction
+                "Corrected text"
+            }
+        )
+
+        val result = rewriter.rewrite("ons moet die model tune", PromptPreset.CLEAN_AND_POLISH)
+        assertTrue(result.isSuccess)
+        assertTrue(capturedSystemInstruction.contains("NOTE ON MULTILINGUAL CODE-SWITCHING:"))
+        assertTrue(capturedSystemInstruction.contains("English and Afrikaans"))
+    }
+
+    @Test
     fun testNoneAccentLeavesSystemInstructionUnmodified() = runBlocking {
         var capturedSystemInstruction = ""
         val rewriter = GeminiRemoteRewriter(
