@@ -583,6 +583,11 @@ private class FakeKeystrokeDispatcher : KeystrokeDispatcher {
 
     override suspend fun sendRawKeyStrokes(keyStrokes: List<HidKeyStroke>, delayMs: Long) {}
 
+    override suspend fun streamClipboardToHost(clipText: String, bracketedPaste: Boolean, delayMs: Long) {
+        burstDispatches.add(clipText to delayMs)
+        _currentHostText.value += clipText
+    }
+
     override fun resetState() {
         _currentHostText.value = ""
     }

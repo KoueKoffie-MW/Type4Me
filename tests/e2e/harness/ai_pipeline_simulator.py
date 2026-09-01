@@ -1,7 +1,8 @@
 """
 AI Text Rewriter Pipeline Simulator.
 Implements Google GenAI SDK (gemini-3.7-flash / gemini-3.5-flash-lite) and
-on-device LiteRT-LM contracts with built-in and custom prompt presets.
+on-device LiteRT-LM contracts with built-in and custom prompt presets,
+and HybridAiOrchestrator with air-gap fallback policies.
 """
 from dataclasses import dataclass
 from enum import Enum
@@ -13,6 +14,12 @@ class AiEngineType(Enum):
     GEMINI_3_7_FLASH = "gemini-3.7-flash"
     GEMINI_3_5_FLASH_LITE = "gemini-3.5-flash-lite"
     LITERT_ON_DEVICE = "gemma-2b-it-q4"
+
+
+class AiPolicy(Enum):
+    AIR_GAP_STRICT = "AIR_GAP_STRICT"   # Local SLM only, zero network egress
+    LOCAL_PREF = "LOCAL_PREF"           # Try Local, fallback to Cloud if allowed
+    CLOUD_PREF = "CLOUD_PREF"           # Try Cloud, fallback to Local
 
 
 @dataclass
@@ -164,7 +171,6 @@ class GeminiRemoteRewriter(TextRewriter):
 
         else:
             # Custom preset transformation
-            # Check user template
             transformed = preset.format_user_prompt(transformed)
 
         return True, transformed, None
@@ -189,8 +195,6 @@ class LiteRtOnDeviceRewriter(TextRewriter):
         if not self.is_available():
             return False, "", "LiteRT on-device model weights not installed on device."
 
-        # Simulate Gemma prompt formatting:
-        # <start_of_turn>system\n{system_prompt}<end_of_turn>\n<start_of_turn>user\n{user_prompt}<end_of_turn>\n<start_of_turn>model\n
         user_prompt = preset.format_user_prompt(text)
         gemma_prompt = (
             f"<start_of_turn>system\n{preset.system_prompt}<end_of_turn>\n"
@@ -198,12 +202,53 @@ class LiteRtOnDeviceRewriter(TextRewriter):
             f"<start_of_turn>model\n"
         )
 
-        # Output cleaned text
         output = text.strip()
-        # Clean filler words
         fillers = [r"\bum\b", r"\buh\b", r"\behm\b"]
         for f in fillers:
             output = re.sub(f, "", output, flags=re.IGNORECASE)
         output = re.sub(r"\s+", " ", output).strip()
 
         return True, output, None
+
+
+class HybridAiOrchestrator:
+    """
+    Orchestrates execution between On-Device (LiteRT-LM) and Cloud (Gemini)
+    according to enterprise privacy policies.
+    """
+
+    def __init__(
+        self,
+        local_rewriter: LiteRtOnDeviceRewriter,
+        cloud_rewriter: GeminiRemoteRewriter,
+        policy: AiPolicy = AiPolicy.LOCAL_PREF
+    ):
+        self.local_rewriter = local_rewriter
+        self.cloud_rewriter = cloud_rewriter
+        self.policy = policy
+
+    def rewrite(self, text: str, preset: PromptPreset) -> Tuple[bool, str, Optional[str]]:
+        if self.policy == AiPolicy.AIR_GAP_STRICT:
+            if not self.local_rewriter.is_available():
+                return False, "", "Air-Gap mode strictly forbids cloud egress, but local model is unavailable."
+            return self.local_rewriter.rewrite(text, preset)
+
+        elif self.policy == AiPolicy.LOCAL_PREF:
+            if self.local_rewriter.is_available():
+                ok, res, err = self.local_rewriter.rewrite(text, preset)
+                if ok:
+                    return ok, res, err
+            # Fallback to cloud
+            if self.cloud_rewriter.is_available():
+                return self.cloud_rewriter.rewrite(text, preset)
+            return False, "", "Both local and cloud AI engines are unavailable."
+
+        else: # CLOUD_PREF
+            if self.cloud_rewriter.is_available():
+                ok, res, err = self.cloud_rewriter.rewrite(text, preset)
+                if ok:
+                    return ok, res, err
+            # Fallback to local
+            if self.local_rewriter.is_available():
+                return self.local_rewriter.rewrite(text, preset)
+            return False, "", "Both cloud and local AI engines are unavailable."

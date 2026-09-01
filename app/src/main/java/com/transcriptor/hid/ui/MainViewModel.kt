@@ -5,29 +5,39 @@ import androidx.lifecycle.viewModelScope
 import com.transcriptor.hid.ai.GeminiRemoteRewriter
 import com.transcriptor.hid.ai.PromptPreset
 import com.transcriptor.hid.ai.TextRewriter
+import com.transcriptor.hid.data.MacroRepository
+import com.transcriptor.hid.data.PairedHostRepository
 import com.transcriptor.hid.data.PresetRepository
 import com.transcriptor.hid.data.SettingsRepository
+import com.transcriptor.hid.data.SnippetRepository
+import com.transcriptor.hid.data.db.CategoryEntity
+import com.transcriptor.hid.data.db.MacroEntity
+import com.transcriptor.hid.data.db.PairedHostEntity
+import com.transcriptor.hid.data.db.SnippetEntity
 import com.transcriptor.hid.engine.DefaultKeystrokeDispatcher
+import com.transcriptor.hid.engine.HidConstants
+import com.transcriptor.hid.engine.HidKeyStroke
+import com.transcriptor.hid.engine.InterpolationContext
 import com.transcriptor.hid.engine.KeyLayout
 import com.transcriptor.hid.engine.KeymapTranslator
 import com.transcriptor.hid.engine.KeystrokeDispatcher
+import com.transcriptor.hid.engine.MacroRunner
+import com.transcriptor.hid.engine.VariableParser
 import com.transcriptor.hid.service.BluetoothHidTransport
 import com.transcriptor.hid.service.HidConnectionState
 import com.transcriptor.hid.service.HidTransport
+import com.transcriptor.hid.service.MultiHostConnectionState
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.combine
-import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
 /**
  * MVI ViewModel orchestrating single-screen UI state, user intents, AI rewriting,
- * HID transmission, and repository persistence.
+ * HID transmission, variable interpolation, macro execution, and multi-host switching.
  */
 open class MainViewModel(
     val settingsRepository: SettingsRepository,
@@ -35,6 +45,9 @@ open class MainViewModel(
     val textRewriter: TextRewriter,
     val keystrokeDispatcher: KeystrokeDispatcher,
     val hidTransport: HidTransport,
+    val snippetRepository: SnippetRepository? = null,
+    val macroRepository: MacroRepository? = null,
+    val pairedHostRepository: PairedHostRepository? = null,
     externalScope: CoroutineScope? = null
 ) : ViewModel() {
 
@@ -42,6 +55,11 @@ open class MainViewModel(
     private val scope: CoroutineScope = externalScope ?: viewModelScope
 
     private var liveDiffJob: Job? = null
+
+    val macroRunner: MacroRunner = MacroRunner(
+        keystrokeDispatcher = keystrokeDispatcher,
+        reportSender = { report -> hidTransport.sendKeyboardReport(report) }
+    )
 
     private val _uiState = MutableStateFlow(
         MainUiState(
@@ -149,6 +167,94 @@ open class MainViewModel(
                 _uiState.update { it.copy(connectedDeviceName = deviceName) }
             }
         }
+
+        // Observe Multi-Host State
+        (hidTransport as? BluetoothHidTransport)?.let { bt ->
+            scope.launch {
+                bt.multiHostState.collect { mhState ->
+                    when (mhState) {
+                        is MultiHostConnectionState.Connected -> {
+                            _uiState.update { it.copy(activeHost = mhState.activeHost) }
+                        }
+                        is MultiHostConnectionState.Disconnected -> {
+                            _uiState.update { it.copy(activeHost = null) }
+                        }
+                        is MultiHostConnectionState.Error -> {
+                            _uiState.update { it.copy(errorMessage = mhState.message) }
+                        }
+                        else -> Unit
+                    }
+                }
+            }
+        }
+
+        // Observe M3 Snippet & Category & Macro Flows
+        snippetRepository?.let { repo ->
+            scope.launch {
+                repo.getAllCategories().collect { cats ->
+                    _uiState.update { it.copy(categories = cats) }
+                }
+            }
+
+            scope.launch {
+                repo.getFavoriteSnippets().collect { favs ->
+                    _uiState.update { it.copy(favorites = favs) }
+                }
+            }
+
+            scope.launch {
+                repo.getAllSnippets().collect { allSnippets ->
+                    _uiState.update { current ->
+                        val filtered = filterSnippets(allSnippets, current.selectedCategoryId, current.snippetsSearchQuery)
+                        current.copy(snippets = filtered)
+                    }
+                }
+            }
+        }
+
+        macroRepository?.let { repo ->
+            scope.launch {
+                repo.getAllMacros().collect { macroList ->
+                    _uiState.update { it.copy(macros = macroList) }
+                }
+            }
+        }
+
+        pairedHostRepository?.let { repo ->
+            scope.launch {
+                repo.getAllPairedHosts().collect { hostList ->
+                    _uiState.update { it.copy(pairedHosts = hostList) }
+                }
+            }
+        }
+    }
+
+    private fun filterSnippets(
+        all: List<SnippetEntity>,
+        categoryId: Long?,
+        query: String
+    ): List<SnippetEntity> {
+        return all.filter { snippet ->
+            val matchesCat = categoryId == null || snippet.categoryId == categoryId
+            val matchesQuery = query.isBlank() ||
+                    snippet.title.contains(query, ignoreCase = true) ||
+                    snippet.content.contains(query, ignoreCase = true) ||
+                    snippet.tags.any { it.contains(query, ignoreCase = true) }
+            matchesCat && matchesQuery
+        }
+    }
+
+    private fun refreshSnippetsFilter() {
+        snippetRepository?.let { repo ->
+            scope.launch {
+                repo.getAllSnippets().collect { all ->
+                    _uiState.update { current ->
+                        val filtered = filterSnippets(all, current.selectedCategoryId, current.snippetsSearchQuery)
+                        current.copy(snippets = filtered)
+                    }
+                }
+            }
+        }
     }
 
     /**
@@ -196,6 +302,22 @@ open class MainViewModel(
             is MainUiIntent.SendMouseRightClick -> handleSendMouseClick(BluetoothHidTransport.MOUSE_BUTTON_RIGHT)
             is MainUiIntent.SendMouseMiddleClick -> handleSendMouseClick(BluetoothHidTransport.MOUSE_BUTTON_MIDDLE)
             is MainUiIntent.SendMouseScroll -> handleSendMouseScroll(intent.wheel)
+
+            // Milestone 3 Intents
+            is MainUiIntent.SelectSnippetCategory -> handleSelectSnippetCategory(intent.categoryId)
+            is MainUiIntent.UpdateSnippetSearchQuery -> handleUpdateSnippetSearchQuery(intent.query)
+            is MainUiIntent.TriggerSnippet -> handleTriggerSnippet(intent.snippet)
+            is MainUiIntent.SubmitPromptAnswers -> handleSubmitPromptAnswers(intent.answers)
+            is MainUiIntent.DismissPromptDialog -> _uiState.update { it.copy(activePromptSnippet = null, activePromptMacro = null, activePrompts = emptyList()) }
+            is MainUiIntent.ToggleSnippetFavorite -> handleToggleSnippetFavorite(intent.snippet)
+            is MainUiIntent.DeleteSnippet -> handleDeleteSnippet(intent.snippet)
+            is MainUiIntent.SaveSnippet -> handleSaveSnippet(intent.snippet)
+            is MainUiIntent.TriggerMacro -> handleTriggerMacro(intent.macro)
+            is MainUiIntent.SendRawHotkey -> handleSendRawHotkey(intent.strokes)
+            is MainUiIntent.StreamClipboardToHost -> handleStreamClipboardToHost(intent.clipText, intent.bracketedPaste)
+
+            // Milestone 4 Intents
+            is MainUiIntent.SwitchHost -> handleSwitchHost(intent.target)
         }
     }
 
@@ -216,7 +338,6 @@ open class MainViewModel(
         }
 
         // In Live Diff transmission mode, emit real-time deltas directly to connected host PC
-        // Preceding live-diff job is cancelled to prevent out-of-order execution during rapid voice typing
         val state = _uiState.value
         if (state.liveDiffEnabled && state.connectionState == HidConnectionState.CONNECTED) {
             liveDiffJob?.cancel()
@@ -588,6 +709,171 @@ open class MainViewModel(
     private fun handleSendMouseScroll(wheel: Int) {
         scope.launch {
             hidTransport.sendMouseReport(buttons = 0, dx = 0, dy = 0, wheel = wheel)
+        }
+    }
+
+    // --- M3 Snippets & Macros Handlers ---
+
+    private fun handleSelectSnippetCategory(categoryId: Long?) {
+        _uiState.update { it.copy(selectedCategoryId = categoryId) }
+        refreshSnippetsFilter()
+    }
+
+    private fun handleUpdateSnippetSearchQuery(query: String) {
+        _uiState.update { it.copy(snippetsSearchQuery = query) }
+        refreshSnippetsFilter()
+    }
+
+    private fun handleTriggerSnippet(snippet: SnippetEntity) {
+        val prompts = VariableParser.extractPrompts(snippet.content)
+        if (prompts.isNotEmpty()) {
+            _uiState.update {
+                it.copy(
+                    activePromptSnippet = snippet,
+                    activePrompts = prompts
+                )
+            }
+        } else {
+            dispatchSnippetExecution(snippet, emptyMap())
+        }
+    }
+
+    private fun handleSubmitPromptAnswers(answers: Map<String, String>) {
+        val snippet = _uiState.value.activePromptSnippet
+        val macro = _uiState.value.activePromptMacro
+
+        _uiState.update {
+            it.copy(
+                activePromptSnippet = null,
+                activePromptMacro = null,
+                activePrompts = emptyList()
+            )
+        }
+
+        if (snippet != null) {
+            dispatchSnippetExecution(snippet, answers)
+        } else if (macro != null) {
+            val context = InterpolationContext(
+                promptAnswers = answers,
+                hostOs = _uiState.value.activeHost?.hostOs?.name ?: "WINDOWS"
+            )
+            scope.launch {
+                macroRunner.execute(macro.stepsJson, context)
+            }
+        }
+    }
+
+    private fun dispatchSnippetExecution(snippet: SnippetEntity, promptAnswers: Map<String, String>) {
+        if (_uiState.value.connectionState != HidConnectionState.CONNECTED) {
+            _uiState.update { it.copy(errorMessage = "Host PC is not connected.") }
+            return
+        }
+
+        val context = InterpolationContext(
+            promptAnswers = promptAnswers,
+            hostOs = _uiState.value.activeHost?.hostOs?.name ?: "WINDOWS"
+        )
+
+        val (resolvedText, backtrack) = VariableParser.evaluate(snippet.content, context)
+        val delayMs = _uiState.value.typingDelayMs
+
+        scope.launch {
+            _uiState.update { it.copy(isTransmitting = true) }
+            try {
+                keystrokeDispatcher.dispatchBurst(resolvedText, delayMs)
+                if (backtrack > 0) {
+                    val leftArrow = HidKeyStroke(HidConstants.MOD_NONE, HidConstants.KEY_LEFT)
+                    keystrokeDispatcher.sendRawKeyStrokes(List(backtrack) { leftArrow }, delayMs)
+                }
+            } catch (e: Exception) {
+                _uiState.update { it.copy(errorMessage = "Snippet dispatch error: ${e.localizedMessage}") }
+            } finally {
+                _uiState.update { it.copy(isTransmitting = false) }
+            }
+        }
+    }
+
+    private fun handleToggleSnippetFavorite(snippet: SnippetEntity) {
+        scope.launch {
+            snippetRepository?.setFavorite(snippet.id, !snippet.isFavorite)
+        }
+    }
+
+    private fun handleDeleteSnippet(snippet: SnippetEntity) {
+        scope.launch {
+            snippetRepository?.deleteSnippet(snippet)
+        }
+    }
+
+    private fun handleSaveSnippet(snippet: SnippetEntity) {
+        scope.launch {
+            snippetRepository?.insertSnippet(snippet)
+        }
+    }
+
+    private fun handleTriggerMacro(macro: MacroEntity) {
+        if (_uiState.value.connectionState != HidConnectionState.CONNECTED) {
+            _uiState.update { it.copy(errorMessage = "Host PC is not connected.") }
+            return
+        }
+
+        val context = InterpolationContext(
+            hostOs = _uiState.value.activeHost?.hostOs?.name ?: "WINDOWS"
+        )
+
+        scope.launch {
+            _uiState.update { it.copy(isTransmitting = true) }
+            try {
+                macroRunner.execute(macro.stepsJson, context)
+            } catch (e: Exception) {
+                _uiState.update { it.copy(errorMessage = "Macro error: ${e.localizedMessage}") }
+            } finally {
+                _uiState.update { it.copy(isTransmitting = false) }
+            }
+        }
+    }
+
+    private fun handleSendRawHotkey(strokes: List<HidKeyStroke>) {
+        if (_uiState.value.connectionState != HidConnectionState.CONNECTED) {
+            _uiState.update { it.copy(errorMessage = "Host PC is not connected.") }
+            return
+        }
+
+        scope.launch {
+            keystrokeDispatcher.sendRawKeyStrokes(strokes, _uiState.value.typingDelayMs)
+        }
+    }
+
+    private fun handleStreamClipboardToHost(clipText: String, bracketedPaste: Boolean) {
+        if (_uiState.value.connectionState != HidConnectionState.CONNECTED) {
+            _uiState.update { it.copy(errorMessage = "Host PC is not connected.") }
+            return
+        }
+
+        scope.launch {
+            _uiState.update { it.copy(isTransmitting = true) }
+            try {
+                keystrokeDispatcher.streamClipboardToHost(clipText, bracketedPaste, _uiState.value.typingDelayMs)
+            } finally {
+                _uiState.update { it.copy(isTransmitting = false) }
+            }
+        }
+    }
+
+    // --- M4 Multi-Host Handlers ---
+
+    private fun handleSwitchHost(target: PairedHostEntity) {
+        scope.launch {
+            val bt = hidTransport as? BluetoothHidTransport
+            if (bt == null) {
+                _uiState.update { it.copy(errorMessage = "Bluetooth transport is not available.") }
+                return@launch
+            }
+            val success = bt.switchHost(target)
+            if (!success) {
+                _uiState.update { it.copy(errorMessage = "Failed to switch to host: ${target.hostName}") }
+            }
+            loadPairedDevices()
         }
     }
 }

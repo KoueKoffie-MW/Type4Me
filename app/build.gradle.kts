@@ -2,6 +2,7 @@ plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
     alias(libs.plugins.kotlin.compose)
+    alias(libs.plugins.kotlin.serialization)
     alias(libs.plugins.ksp)
 }
 
@@ -13,8 +14,8 @@ android {
         applicationId = "com.transcriptor.hid"
         minSdk = 28
         targetSdk = 35
-        versionCode = 5
-        versionName = "1.3.0"
+        versionCode = 6
+        versionName = "1.4.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables {
@@ -118,6 +119,7 @@ dependencies {
     testImplementation(libs.test.turbine)
     testImplementation(libs.test.truth)
     testImplementation(libs.test.robolectric)
+    testImplementation(libs.test.androidx.core)
 
     androidTestImplementation(platform(libs.androidx.compose.bom))
     androidTestImplementation(libs.test.compose.ui.junit4)

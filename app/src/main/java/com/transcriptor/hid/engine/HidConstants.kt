@@ -20,7 +20,13 @@ object HidConstants {
     const val MOD_ALT_GR: Byte = 0x40
     val MOD_RGUI: Byte = 0x80.toByte()
     val MOD_RMETA: Byte = 0x80.toByte()
+
+    // Extended Composite Modifier Masks
     val MOD_SHIFT_ALT_GR: Byte = (0x02 or 0x40).toByte() // 0x42
+    val MOD_CTRL_ALT: Byte = (0x01 or 0x04).toByte()     // 0x05
+    val MOD_CTRL_SHIFT: Byte = (0x01 or 0x02).toByte()   // 0x03
+    const val MOD_ALT_TAB: Byte = MOD_LALT               // 0x04
+    val MOD_CTRL_ALT_SHIFT: Byte = (0x01 or 0x04 or 0x02).toByte() // 0x07
 
     // -------------------------------------------------------------
     // USB HID Usage Table (Page 0x07 - Keyboard / Keypad)
@@ -70,7 +76,7 @@ object HidConstants {
     const val KEY_9: Byte = 0x26
     const val KEY_0: Byte = 0x27
 
-    // Control & Navigation Keys
+    // Control & Navigation Keys (0x28 - 0x2C)
     const val KEY_ENTER: Byte = 0x28
     const val KEY_RETURN: Byte = 0x28
     const val KEY_ESCAPE: Byte = 0x29
@@ -79,11 +85,13 @@ object HidConstants {
     const val KEY_TAB: Byte = 0x2B
     const val KEY_SPACE: Byte = 0x2C
 
-    // Punctuation & Layout-Specific Usage Codes
+    // Punctuation & Layout-Specific Usage Codes (0x2D - 0x39, 0x64)
     const val KEY_MINUS: Byte = 0x2D          // US: '-/_', DE: 'ß/?/\'
     const val KEY_EQUAL: Byte = 0x2E          // US: '=/+', DE: '´/`'
     const val KEY_LEFTBRACE: Byte = 0x2F      // US: '[/{', DE: 'ü/Ü'
+    const val KEY_LEFT_BRACE: Byte = 0x2F
     const val KEY_RIGHTBRACE: Byte = 0x30     // US: ']/}', DE: '+/*/~'
+    const val KEY_RIGHT_BRACE: Byte = 0x30
     const val KEY_BACKSLASH: Byte = 0x31      // US: '\/|' (ANSI)
     const val KEY_NON_US_HASH: Byte = 0x32    // DE: '#/\'' (ISO next to Enter)
     const val KEY_SEMICOLON: Byte = 0x33     // US: ';/:', DE: 'ö/Ö'
@@ -93,8 +101,9 @@ object HidConstants {
     const val KEY_DOT: Byte = 0x37           // US: './>', DE: './:'
     const val KEY_SLASH: Byte = 0x38         // US: '//?', DE: '-/_'
     const val KEY_CAPSLOCK: Byte = 0x39
+    const val KEY_CAPS_LOCK: Byte = 0x39
 
-    // Function Keys
+    // Function Keys F1-F24 (0x3A - 0x45, 0x68 - 0x73)
     const val KEY_F1: Byte = 0x3A
     const val KEY_F2: Byte = 0x3B
     const val KEY_F3: Byte = 0x3C
@@ -107,7 +116,62 @@ object HidConstants {
     const val KEY_F10: Byte = 0x43
     const val KEY_F11: Byte = 0x44
     const val KEY_F12: Byte = 0x45
+    const val KEY_F13: Byte = 0x68
+    const val KEY_F14: Byte = 0x69
+    const val KEY_F15: Byte = 0x6A
+    const val KEY_F16: Byte = 0x6B
+    const val KEY_F17: Byte = 0x6C
+    const val KEY_F18: Byte = 0x6D
+    const val KEY_F19: Byte = 0x6E
+    const val KEY_F20: Byte = 0x6F
+    const val KEY_F21: Byte = 0x70
+    const val KEY_F22: Byte = 0x71
+    const val KEY_F23: Byte = 0x72
+    const val KEY_F24: Byte = 0x73
+
+    // Navigation & Extended Editing (0x46 - 0x52)
+    const val KEY_PRINT_SCREEN: Byte = 0x46
+    const val KEY_SCROLL_LOCK: Byte = 0x47
+    const val KEY_PAUSE: Byte = 0x48
+    const val KEY_INSERT: Byte = 0x49
+    const val KEY_HOME: Byte = 0x4A
+    const val KEY_PAGE_UP: Byte = 0x4B
+    const val KEY_DELETE: Byte = 0x4C        // Forward Delete
+    const val KEY_END: Byte = 0x4D
+    const val KEY_PAGE_DOWN: Byte = 0x4E
+    const val KEY_RIGHT: Byte = 0x4F
+    const val KEY_RIGHT_ARROW: Byte = 0x4F
+    const val KEY_LEFT: Byte = 0x50
+    const val KEY_LEFT_ARROW: Byte = 0x50
+    const val KEY_DOWN: Byte = 0x51
+    const val KEY_DOWN_ARROW: Byte = 0x51
+    const val KEY_UP: Byte = 0x52
+    const val KEY_UP_ARROW: Byte = 0x52
+
+    // Keypad (0x53 - 0x63, 0x67)
+    const val KEY_NUM_LOCK: Byte = 0x53
+    const val KEYPAD_SLASH: Byte = 0x54
+    const val KEYPAD_ASTERISK: Byte = 0x55
+    const val KEYPAD_MINUS: Byte = 0x56
+    const val KEYPAD_PLUS: Byte = 0x57
+    const val KEYPAD_ENTER: Byte = 0x58
+    const val KEYPAD_1: Byte = 0x59
+    const val KEYPAD_2: Byte = 0x5A
+    const val KEYPAD_3: Byte = 0x5B
+    const val KEYPAD_4: Byte = 0x5C
+    const val KEYPAD_5: Byte = 0x5D
+    const val KEYPAD_6: Byte = 0x5E
+    const val KEYPAD_7: Byte = 0x5F
+    const val KEYPAD_8: Byte = 0x60
+    const val KEYPAD_9: Byte = 0x61
+    const val KEYPAD_0: Byte = 0x62
+    const val KEYPAD_DOT: Byte = 0x63
+    const val KEYPAD_EQUAL: Byte = 0x67
 
     // ISO Extra Key (B00)
     const val KEY_NON_US_BACKSLASH: Byte = 0x64 // DE: '</>/|' (ISO between LShift and Y)
+
+    // System & Application Controls (0x65 - 0x66)
+    const val KEY_APPLICATION: Byte = 0x65   // Context Menu key
+    const val KEY_POWER: Byte = 0x66
 }

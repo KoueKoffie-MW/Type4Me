@@ -7,9 +7,15 @@ import androidx.room.Room
 import com.transcriptor.hid.ai.GeminiRemoteRewriter
 import com.transcriptor.hid.ai.TextRewriter
 import com.transcriptor.hid.data.DataStoreSettingsRepository
+import com.transcriptor.hid.data.DefaultMacroRepository
+import com.transcriptor.hid.data.DefaultPairedHostRepository
 import com.transcriptor.hid.data.DefaultPresetRepository
+import com.transcriptor.hid.data.DefaultSnippetRepository
+import com.transcriptor.hid.data.MacroRepository
+import com.transcriptor.hid.data.PairedHostRepository
 import com.transcriptor.hid.data.PresetRepository
 import com.transcriptor.hid.data.SettingsRepository
+import com.transcriptor.hid.data.SnippetRepository
 import com.transcriptor.hid.data.db.AppDatabase
 import com.transcriptor.hid.engine.DefaultKeystrokeDispatcher
 import com.transcriptor.hid.engine.GermanQwertzKeymap
@@ -38,6 +44,15 @@ class TranscriptorApp : Application() {
     lateinit var presetRepository: PresetRepository
         private set
 
+    lateinit var snippetRepository: SnippetRepository
+        private set
+
+    lateinit var macroRepository: MacroRepository
+        private set
+
+    lateinit var pairedHostRepository: PairedHostRepository
+        private set
+
     lateinit var settingsRepository: SettingsRepository
         private set
 
@@ -57,13 +72,17 @@ class TranscriptorApp : Application() {
         super.onCreate()
         instance = this
 
-        // 1. Initialize Room DB & Preset Repository
+        // 1. Initialize Room DB & Repositories
         database = AppDatabase.getInstance(this)
         presetRepository = DefaultPresetRepository(database.presetDao())
+        snippetRepository = DefaultSnippetRepository(database.categoryDao(), database.snippetDao(), database)
+        macroRepository = DefaultMacroRepository(database.macroDao(), database.categoryDao())
+        pairedHostRepository = DefaultPairedHostRepository(database.pairedHostDao())
 
-        // 2. Seed initial presets in background
+        // 2. Seed initial presets & default tool pack in background
         applicationScope.launch {
             presetRepository.ensureBuiltInPresetsSeeded()
+            snippetRepository.ensureDefaultToolPackSeeded(database)
         }
 
         // 3. Initialize DataStore Settings Repository

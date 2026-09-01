@@ -5,10 +5,11 @@ Authoritative translation tables according to USB HID Usage Page 0x07 & DIN 2137
 from dataclasses import dataclass, field
 from enum import Enum
 import unicodedata
-from typing import List, Optional, Tuple
+from typing import List, Optional, Tuple, Dict
 
 from .hid_constants import (
-    MOD_NONE, MOD_L_SHIFT, MOD_R_ALT, MOD_SHIFT_ALTGR,
+    MOD_NONE, MOD_L_CTRL, MOD_L_SHIFT, MOD_L_ALT, MOD_L_GUI,
+    MOD_R_CTRL, MOD_R_SHIFT, MOD_R_ALT, MOD_SHIFT_ALTGR, MOD_CTRL_ALT, MOD_CTRL_SHIFT,
     KEY_NONE, KEY_A, KEY_B, KEY_C, KEY_D, KEY_E, KEY_F, KEY_G, KEY_H, KEY_I,
     KEY_J, KEY_K, KEY_L, KEY_M, KEY_N, KEY_O, KEY_P, KEY_Q, KEY_R, KEY_S,
     KEY_T, KEY_U, KEY_V, KEY_W, KEY_X, KEY_Y, KEY_Z,
@@ -16,7 +17,12 @@ from .hid_constants import (
     KEY_ENTER, KEY_ESCAPE, KEY_BACKSPACE, KEY_TAB, KEY_SPACE,
     KEY_MINUS, KEY_EQUAL, KEY_LEFT_BRACE, KEY_RIGHT_BRACE, KEY_BACKSLASH,
     KEY_NON_US_HASH, KEY_SEMICOLON, KEY_APOSTROPHE, KEY_GRAVE,
-    KEY_COMMA, KEY_DOT, KEY_SLASH, KEY_NON_US_BACKSLASH
+    KEY_COMMA, KEY_DOT, KEY_SLASH, KEY_NON_US_BACKSLASH,
+    KEY_F1, KEY_F2, KEY_F3, KEY_F4, KEY_F5, KEY_F6, KEY_F7, KEY_F8, KEY_F9, KEY_F10, KEY_F11, KEY_F12,
+    KEY_F13, KEY_F14, KEY_F15, KEY_F16, KEY_F17, KEY_F18, KEY_F19, KEY_F20, KEY_F21, KEY_F22, KEY_F23, KEY_F24,
+    KEY_PRINT_SCREEN, KEY_SCROLL_LOCK, KEY_PAUSE, KEY_INSERT, KEY_HOME, KEY_PAGE_UP, KEY_DELETE, KEY_END, KEY_PAGE_DOWN,
+    KEY_RIGHT_ARROW, KEY_LEFT_ARROW, KEY_DOWN_ARROW, KEY_UP_ARROW,
+    BRACKETED_PASTE_START, BRACKETED_PASTE_END
 )
 
 
@@ -68,6 +74,58 @@ class HidReport:
         return cls(modifier=0, reserved=0, key_codes=[0, 0, 0, 0, 0, 0])
 
 
+# Hotkey Name -> HidKeyStroke mapping dictionary
+HOTKEY_MAP: Dict[str, HidKeyStroke] = {
+    "ESC": HidKeyStroke(MOD_NONE, KEY_ESCAPE),
+    "ESCAPE": HidKeyStroke(MOD_NONE, KEY_ESCAPE),
+    "TAB": HidKeyStroke(MOD_NONE, KEY_TAB),
+    "ENTER": HidKeyStroke(MOD_NONE, KEY_ENTER),
+    "BACKSPACE": HidKeyStroke(MOD_NONE, KEY_BACKSPACE),
+    "CTRL_C": HidKeyStroke(MOD_L_CTRL, KEY_C),
+    "CTRL_Z": HidKeyStroke(MOD_L_CTRL, KEY_Z),
+    "CTRL_D": HidKeyStroke(MOD_L_CTRL, KEY_D),
+    "CTRL_L": HidKeyStroke(MOD_L_CTRL, KEY_L),
+    "CTRL_A": HidKeyStroke(MOD_L_CTRL, KEY_A),
+    "CTRL_E": HidKeyStroke(MOD_L_CTRL, KEY_E),
+    "CTRL_R": HidKeyStroke(MOD_L_CTRL, KEY_R),
+    "ALT_TAB": HidKeyStroke(MOD_L_ALT, KEY_TAB),
+    "UP": HidKeyStroke(MOD_NONE, KEY_UP_ARROW),
+    "DOWN": HidKeyStroke(MOD_NONE, KEY_DOWN_ARROW),
+    "LEFT": HidKeyStroke(MOD_NONE, KEY_LEFT_ARROW),
+    "RIGHT": HidKeyStroke(MOD_NONE, KEY_RIGHT_ARROW),
+    "HOME": HidKeyStroke(MOD_NONE, KEY_HOME),
+    "END": HidKeyStroke(MOD_NONE, KEY_END),
+    "PAGE_UP": HidKeyStroke(MOD_NONE, KEY_PAGE_UP),
+    "PAGE_DOWN": HidKeyStroke(MOD_NONE, KEY_PAGE_DOWN),
+    "INSERT": HidKeyStroke(MOD_NONE, KEY_INSERT),
+    "DELETE": HidKeyStroke(MOD_NONE, KEY_DELETE),
+    "F1": HidKeyStroke(MOD_NONE, KEY_F1),
+    "F2": HidKeyStroke(MOD_NONE, KEY_F2),
+    "F3": HidKeyStroke(MOD_NONE, KEY_F3),
+    "F4": HidKeyStroke(MOD_NONE, KEY_F4),
+    "F5": HidKeyStroke(MOD_NONE, KEY_F5),
+    "F6": HidKeyStroke(MOD_NONE, KEY_F6),
+    "F7": HidKeyStroke(MOD_NONE, KEY_F7),
+    "F8": HidKeyStroke(MOD_NONE, KEY_F8),
+    "F9": HidKeyStroke(MOD_NONE, KEY_F9),
+    "F10": HidKeyStroke(MOD_NONE, KEY_F10),
+    "F11": HidKeyStroke(MOD_NONE, KEY_F11),
+    "F12": HidKeyStroke(MOD_NONE, KEY_F12),
+    "F13": HidKeyStroke(MOD_NONE, KEY_F13),
+    "F14": HidKeyStroke(MOD_NONE, KEY_F14),
+    "F15": HidKeyStroke(MOD_NONE, KEY_F15),
+    "F16": HidKeyStroke(MOD_NONE, KEY_F16),
+    "F17": HidKeyStroke(MOD_NONE, KEY_F17),
+    "F18": HidKeyStroke(MOD_NONE, KEY_F18),
+    "F19": HidKeyStroke(MOD_NONE, KEY_F19),
+    "F20": HidKeyStroke(MOD_NONE, KEY_F20),
+    "F21": HidKeyStroke(MOD_NONE, KEY_F21),
+    "F22": HidKeyStroke(MOD_NONE, KEY_F22),
+    "F23": HidKeyStroke(MOD_NONE, KEY_F23),
+    "F24": HidKeyStroke(MOD_NONE, KEY_F24),
+}
+
+
 class KeymapTranslator:
     """Base Keymap Translator interface."""
 
@@ -84,6 +142,13 @@ class KeymapTranslator:
         for ch in normalized:
             strokes.extend(self.translate_char(ch))
         return strokes
+
+    def translate_hotkey(self, name: str) -> Optional[HidKeyStroke]:
+        normalized = name.strip().upper().replace("+", "_").replace("-", "_").replace(" ", "_")
+        return HOTKEY_MAP.get(normalized, None)
+
+    def wrap_bracketed_paste(self, text: str) -> str:
+        return f"{BRACKETED_PASTE_START}{text}{BRACKETED_PASTE_END}"
 
 
 class UsQwertyKeymap(KeymapTranslator):
@@ -182,7 +247,7 @@ class UsQwertyKeymap(KeymapTranslator):
                 res.extend(self.translate_char(c))
             return res
 
-        # Unknown / unmapped unicode char -> fallback to Space or ignore
+        # Unknown / unmapped unicode char -> fallback to empty list
         return []
 
 

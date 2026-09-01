@@ -1,51 +1,109 @@
-# Project: Type4Me (Hardware Speech-to-Keystroke & Touchpad Mouse Bridge)
+# Project: Type4Me Next-Gen Developer Power Suite
 
 ## Architecture
-- **Presentation Layer (Jetpack Compose & MVI)**: `MainScreen`, `TranscriptionCanvas`, `TouchpadCanvas`, `ConnectionHeader`, `ControlBar`, `PresetSelector`, `SettingsDialog`, `HostConnectDialog`, `ErrorBanner`, driven by `MainViewModel` using unidirectional data flow (`MainUiState`, `MainUiIntent`).
-- **Core Services & Transport**: `HidDeviceService` (foreground service), `BluetoothHidTransport` (Android Bluetooth HID Composite Device profile, singleton instance with Keyboard Report ID 1 + Mouse Report ID 2), `UsbHidTransport`, `KeystrokeDispatcher` (deterministic key pacing, modifiers, soft-enter formatting, Unicode mapping), `DeltaDiffEngine`.
-- **AI Pipeline**: `TextRewriter` interface, `GeminiRemoteRewriter` (Google GenAI SDK / REST, dynamic `apiKeyProvider` and `modelProvider` from DataStore without restart, default `gemini-3.5-flash-lite`), `PromptEngine`.
-- **Data Layer**: `AppDatabase` (Room database with `PresetDao`, `PresetEntity`), `PresetRepository`, `SettingsRepository` (Jetpack DataStore Preferences).
+- **Presentation Layer (Jetpack Compose & MVI)**:
+  - `MainScreen` (root scaffold, scrollable landscape & portrait layouts).
+  - `HotkeyDockBar` (hardware terminal keys: `Esc`, `Tab`, `Ctrl+C`, `Ctrl+Z`, `Ctrl+D`, `Ctrl+L`, `Alt+Tab`, `Arrow keys`, `F1-F12`, clipboard stream button).
+  - `SnippetsPadScreen` (category filter chips, favorites bar, staggered grid, search bar, syntax badges, 1-tap typing).
+  - `VariablePromptBottomSheet` (dynamic template prompt parameter entry modal).
+  - `ConnectionHeader` (multi-host quick switching dropdown widget, status indicator dot, settings button).
+  - `TranscriptionCanvas` & `TouchpadCanvas` (voice editing canvas and precision trackpad).
+  - Driven by `MainViewModel` with unidirectional data flow (`MainUiState`, `MainUiIntent`).
+- **Core Services & Transport**:
+  - `BluetoothHidTransport`: Composite HID descriptor (Report ID 1 Keyboard + F1-F24 + LEDs, Report ID 2 Relative Mouse, Report ID 3 Consumer Control Media).
+  - 6-Phase Atomic Multi-Host Switching Protocol (`switchingMutex`, 150ms settling delay, dead-link watchdog, zero-modifier release).
+  - `KeystrokeDispatcher`: Deterministic 8ms pacing ($t_{down}=4\text{ms}, t_{up}=4\text{ms}$), 25-50ms inter-line delay for AST highlighters, `NonCancellable` emergency release guard, bracketed paste mode (`\x1b[200~` ... `\x1b[201~`), German dead-key synthesis, configurable `NewlineSubmissionMode`.
+  - `UsbHidTransport`: Zero-config wired USB OTG fallback.
+- **Data & Persistence Layer (Room 2.6)**:
+  - `AppDatabase` (Room V2: `categories`, `snippets`, `macros`, `paired_hosts`, `presets`).
+  - DAOs: `CategoryDao`, `SnippetDao`, `MacroDao`, `PairedHostDao`, `PresetDao`.
+  - Migration & Seeding: `MIGRATION_1_2` DDL upgrade and idempotent `DefaultToolPackProvider` preloading 20+ production developer snippets.
+- **Engines & Tooling**:
+  - `VariableParser`: Single-pass mustache AST parser with `\{\{` escaping, code-point aware cursor backtracking, and interactive prompt extraction.
+  - `MacroRunner`: Polymorphic `MacroAction` coroutine execution engine.
+  - Desktop Context Companion: `tools/companion/type4me_companion.py` (Python stdlib) and `tools/companion/type4me_companion.ps1` (pure PowerShell) serving `GET /context` on port 8765 for optional Gemini prompt enrichment with 100% air-gap fallback.
 
 ## Feature Inventory
 | # | Feature | Description | Milestone | Source |
 |---|---------|-------------|-----------|--------|
-| 1 | Singleton HID Transport | Unify `BluetoothHidTransport` between `TranscriptorApp` and `HidDeviceService` to eliminate disconnected dual instances | M1 | Survey |
-| 2 | Dynamic AI Model & Key Pickup | Refactor `GeminiRemoteRewriter` with `modelProvider` lambda to dynamically read model & API key from DataStore on every rewrite without app restart | M1 | Survey |
-| 3 | Live Diff Concurrency Safety | Conflate / cancel preceding live-diff coroutine jobs in `MainViewModel` to eliminate out-of-order execution during rapid voice typing | M1 | Survey |
-| 4 | Room Database Callback Safety | Ensure safe fallback for preset seeding if database callback instance is not yet populated | M1 | Survey |
-| 5 | Settings Dialog & Entry Point | Create `SettingsDialog` in Compose for Gemini API key (with visibility toggle) and Gemini model selection dropdown (`gemini-3.5-flash-lite`, `gemini-3-flash-preview`, `gemini-3.7-flash`); add Settings button to `ConnectionHeader` | M2 | Survey |
-| 6 | Responsive Landscape Layout | Add `verticalScroll` to `MainScreen` root column and adaptive height to `TranscriptionCanvas` to eliminate clipping in landscape & IME open states | M2 | Survey |
-| 7 | Accessibility & Ergonomics | Enforce >= 48dp touch targets on badges/buttons, fix WCAG AA color contrast (>= 4.5:1), add TalkBack semantics | M2 | Survey |
-| 8 | Persistent Actionable Error Banners | Implement prominent inline `ErrorBanner` for API key errors, quota exceeded, or HID disconnects with retry/settings actions | M2 | Survey |
-| 9 | JVM Unit Test Fix (MockK) | Replace reflection in `BluetoothHidTransportTest.kt` with MockK mocks (`mockk<BluetoothDevice>(relaxed = true)`) | M3 | Survey |
-| 10 | Windows E2E Console UTF-8 Fix | Fix `UnicodeEncodeError` on Windows console in `tests/e2e/run_e2e_tests.py` via `sys.stdout.reconfigure(encoding="utf-8", errors="replace")` | M3 | Survey |
-| 11 | Manifest & Branding Modernization | Rebrand to **Type4Me**, add Concept 2 adaptive neon glyph launcher icons, configure GPLv3 license | M3 | User Request |
-| 12 | Chat-Safe Soft-Enters | Map `\n` and `\r` to hardware `Shift + Enter` to prevent premature execution in AI chat boxes | M3 | User Request |
-| 13 | Composite HID Touchpad Mouse | Add Report ID 2 (Relative Mouse) to HID descriptor, create `TouchpadCanvas` with 1-finger glide, tap-click, scroll strip, and physical buttons | M4 | User Request |
-| 14 | Technical Documentation Suite | Author `docs/ARCHITECTURE.md`, `docs/TOUCHPAD_GUIDE.md`, `docs/PROMPT_ENGINEERING.md`, and `docs/HARDWARE_COMPATIBILITY.md` | M4 | User Request |
+| 1 | Room 2.6 Database Schema & Entities | `CategoryEntity`, `SnippetEntity`, `MacroEntity`, `PairedHostEntity`, `Converters` (JSON serialization) | M1 | Survey |
+| 2 | Room DAOs & Reactive Flows | `CategoryDao`, `SnippetDao`, `MacroDao`, `PairedHostDao` with reactive `Flow`, full-text search, and CRUD | M1 | Survey |
+| 3 | Database Migration MIGRATION_1_2 | SQLite DDL upgrading AppDatabase from V1 to V2 with foreign keys, cascading deletes, and composite indices | M1 | Survey |
+| 4 | Preloaded 20+ Developer Tool Pack | Idempotent seeding of 5 categories, 20+ production snippets (Git, Docker, K8s, Rust, Python, AI prompts), and macros | M1 | Survey |
+| 5 | Extended Page 0x07 Scancodes & Modifiers | Full HID Usage table (`Esc`, `Tab`, arrows, navigation, `F1-F24`) and 8-bit modifier bitmask engine in `HidConstants` | M2 | Survey |
+| 6 | Deterministic 8ms Pacing & Release Guard | 8-byte input report lifecycle, 8ms duty cycle, 25-50ms newline delay, and `NonCancellable` emergency release report | M2 | Survey |
+| 7 | Bracketed Paste & Dead-Key Synthesis | Foreground clipboard streaming wrapped in `\x1b[200~` ... `\x1b[201~` and QWERTZ dead-key space-synthesis | M2 | Survey |
+| 8 | Virtual Hotkey Dock Bar Compose UI | Responsive horizontal scrollable dock pinned above voice canvas with 1-tap terminal keys and F-key expansion | M2 | Survey |
+| 9 | Single-Pass Variable AST Parser | Parser supporting `{{timestamp}}`, `{{iso_date}}`, `{{clipboard}}`, `{{prompt:LABEL}}`, code-point cursor backtrack, `\{\{` escaping | M3 | Survey |
+| 10 | Polymorphic MacroAction & Runner Engine | Polymorphic JSON actions (`TypeString`, `KeyCombination`, `Delay`, `PromptVariable`, `ClipboardPaste`) & `MacroRunner` | M3 | Survey |
+| 11 | Snippets Pad Screen & Card UI | Jetpack Compose `SnippetsPadScreen` with category filter chips, favorites bar, staggered grid, search, and syntax badges | M3 | Survey |
+| 12 | Variable Prompt Modal Bottom Sheet | `VariablePromptBottomSheet` for dynamic user parameter entry before snippet/macro dispatch | M3 | Survey |
+| 13 | 154-Byte Composite HID Descriptor | SDP descriptor supporting Report ID 1 (Keyboard up to F24), Report ID 2 (Mouse), Report ID 3 (Consumer Media) | M4 | Survey |
+| 14 | 6-Phase Atomic Host Switching Protocol | Mutex-serialized host switching with 150ms settling guard, 1000ms dead-link watchdog, and Report ID 1 zero release | M4 | Survey |
+| 15 | Multi-Host Dropdown in ConnectionHeader | Top bar widget showing active host icon, custom alias, connection status dot, and 1-tap switching dropdown | M4 | Survey |
+| 16 | Zero-Install Python Companion Script | Standalone `tools/companion/type4me_companion.py` (stdlib only) serving active window/selection context on `GET /context` | M5 | Survey |
+| 17 | Zero-Install PowerShell Companion Script | Standalone `tools/companion/type4me_companion.ps1` (pure Win32 P/Invoke) serving active window/selection context | M5 | Survey |
+| 18 | Dual-Tier Prompt Context Ingestion | Android `CompanionClient` ingesting workstation context into Gemini prompt system prefix with 100% air-gap fallback | M5 | Survey |
+| 19 | E2E Protocol & Test Suite Tiers 1-5 | 300+ simulation tests in `tests/e2e/` covering HID reports, pacing, Room DB, switching protocol, and companion | Test Track / M6 | Survey |
+| 20 | JVM Unit Test Suite Expansion | Full unit test coverage across all newly introduced modules and repository layers in `app/src/test/` | M1-M5 / M6 | Survey |
+| 21 | Clean Release Build & Shrinking | Verification that `./gradlew assembleRelease` compiles cleanly without warnings with R8 obfuscation | M6 | Survey |
 
 ## Milestones
 | # | Name | Scope | Dependencies | Status |
 |---|------|-------|-------------|--------|
-| M1 | Core Architecture, Services & Dynamic AI Pipeline | Singleton transport injection, dynamic `modelProvider` in `GeminiRemoteRewriter`, live-diff coroutine mutex/job serialization, DB seeding guard | None | DONE |
-| M2 | Responsive UI, Settings Screen & Accessibility Remediation | `SettingsDialog`, `ConnectionHeader` settings button, `MainUiState`/`MainUiIntent` wiring, landscape scrollability, >=48dp touch targets, WCAG AA contrast, error banners | M1 | DONE |
-| M3 | Rebranding, Soft-Enters & GPLv3 Licensing | "Type4Me" branding, Concept 2 adaptive icon suite, `Shift + Enter` translation, GNU GPLv3 license | M2 | DONE |
-| M4 | Touchpad Mouse, Documentation & E2E Validation | Composite HID descriptor (129B), `TouchpadCanvas`, `docs/` technical documentation suite, 135 JVM + 301 Python tests passing | M3 | DONE |
+| M1 | Room 2.6 Persistence Layer & Tool Pack Seeding | `CategoryEntity`, `SnippetEntity`, `MacroEntity`, `PairedHostEntity`, DAOs, `MIGRATION_1_2`, `DefaultToolPackProvider` | None | PLANNED |
+| M2 | HID Keystroke Dispatcher, Hotkey Bar & Clipboard Streamer | `HidConstants`, `KeystrokeDispatcher` emergency guard & bracketed paste, `HotkeyDockBar` UI, dead-key synthesis | None | PLANNED |
+| M3 | Snippets Pad UI, Variable Parser & Macro Engine | `VariableParser`, `VariablePromptBottomSheet`, `MacroAction`, `MacroRunner`, `SnippetsPadScreen`, `MainViewModel` wiring | M1, M2 | PLANNED |
+| M4 | Multi-Host Quick Switching & Paired Host Registry | 154B Composite Descriptor, 6-Phase Switching Protocol, `BluetoothHidTransport` release fix, `ConnectionHeader` dropdown | M1, M2 | PLANNED |
+| M5 | Dual-Tier Zero-Install Desktop Context Companion | `tools/companion/type4me_companion.py`, `type4me_companion.ps1`, `CompanionClient`, Gemini context ingestion | None | PLANNED |
+| M6 | Final Verification: 100% E2E Pass, Tier 5 Hardening & Release Build | Full verification of Tiers 1-4 E2E tests, Tier 5 adversarial hardening, JVM unit tests, and `./gradlew assembleRelease` | M1, M2, M3, M4, M5, Test Track | PLANNED |
+
+## Interface Contracts
+### Hotkey & Keystroke Dispatcher ↔ UI (`HotkeyDockBar`)
+- `KeystrokeDispatcher.sendRawKeyStrokes(strokes: List<HidKeyStroke>, delayMs: Long = 8L)`
+- `KeystrokeDispatcher.streamClipboardToHost(clipText: String, bracketedPaste: Boolean = false, delayMs: Long = 8L)`
+- `HidKeyStroke(modifiers: Byte, usageId: Byte)`
+
+### Room Database ↔ Snippets & Multi-Host Repositories
+- `AppDatabase.categoryDao(): CategoryDao`
+- `AppDatabase.snippetDao(): SnippetDao`
+- `AppDatabase.macroDao(): MacroDao`
+- `AppDatabase.pairedHostDao(): PairedHostDao`
+- `Converters`: `List<String>` and `SyntaxType` JSON / string serializers.
+
+### Variable Parser & Macro Runner ↔ Snippets UI
+- `VariableParser.parse(template: String, context: InterpolationContext): VariableParseResult`
+- `VariableParser.extractPrompts(template: String): List<VariableDescriptor.Prompt>`
+- `MacroRunner.execute(macro: MacroEntity, context: InterpolationContext): Flow<MacroExecutionState>`
+
+### Multi-Host Transport ↔ ConnectionHeader
+- `BluetoothHidTransport.switchHost(target: PairedHostEntity): Flow<MultiHostConnectionState>`
+- `BluetoothHidTransport.getPairedHosts(): Flow<List<PairedHostEntity>>`
+- `BluetoothHidTransport.savePairedHost(host: PairedHostEntity): Unit`
+
+### Desktop Companion ↔ Android AI Engine
+- `CompanionClient.fetchActiveContext(hostIp: String, port: Int = 8765): Result<DesktopContext>`
+- `DesktopContext(windowTitle: String, selectedText: String, processName: String, timestamp: Long)`
 
 ## Code Layout
 - `app/src/main/java/com/transcriptor/hid/`
-  - `TranscriptorApp.kt` (Application class, singleton DI container)
-  - `ai/` (`TextRewriter.kt`, `GeminiRemoteRewriter.kt`, `PromptEngine.kt`)
-  - `data/` (`AppDatabase.kt`, `PresetDao.kt`, `PresetEntity.kt`, `PresetRepository.kt`, `SettingsRepository.kt`)
-  - `service/` (`HidDeviceService.kt`, `BluetoothHidTransport.kt`, `UsbHidTransport.kt`, `KeystrokeDispatcher.kt`, `DeltaDiffEngine.kt`, `HidConnectionState.kt`)
-  - `ui/` (`MainActivity.kt`, `MainScreen.kt`, `MainViewModel.kt`, `MainUiState.kt`, `MainUiIntent.kt`, `components/`)
-- `docs/` (`ARCHITECTURE.md`, `TOUCHPAD_GUIDE.md`, `PROMPT_ENGINEERING.md`, `HARDWARE_COMPATIBILITY.md`)
-- `app/src/test/java/com/transcriptor/hid/` (135 JVM Unit tests)
-- `tests/e2e/` (301 Python E2E protocol tests)
-
-## Versioning & Release Policy
-- **Scheme**: Strict Semantic Versioning `MAJOR.MINOR.PATCH` with synchronized Android integer `versionCode`.
-- **Every Commit**: Automatically bumps the **PATCH** version (e.g. `1.1.0` -> `1.1.1`) and increments `versionCode` by 1.
-- **Every Push / Release Milestone**: Bumps the **MINOR** version (e.g. `1.1.x` -> `1.2.0`) and increments `versionCode`.
-- **Architectural Overhaul**: Bumps the **MAJOR** version (e.g. `2.0.0`).
-- **Zero-Key Policy**: Distributed release binaries and git commits MUST NEVER contain hardcoded personal API keys. Keys reside strictly within the local runtime DataStore or uncommitted developer configs.
+  - `TranscriptorApp.kt` (Application singleton & repository locator)
+  - `ai/` (`TextRewriter.kt`, `GeminiRemoteRewriter.kt`, `LiteRtOnDeviceRewriter.kt`, `PromptPreset.kt`, `CompanionClient.kt`)
+  - `data/`
+    - `db/` (`AppDatabase.kt`, `CategoryEntity.kt`, `SnippetEntity.kt`, `MacroEntity.kt`, `PairedHostEntity.kt`, `CategoryDao.kt`, `SnippetDao.kt`, `MacroDao.kt`, `PairedHostDao.kt`, `Converters.kt`, `MIGRATION_1_2.kt`, `DefaultToolPackProvider.kt`)
+    - `SnippetRepository.kt`, `MacroRepository.kt`, `PairedHostRepository.kt`, `PresetRepository.kt`, `SettingsRepository.kt`
+  - `engine/`
+    - `HidConstants.kt`, `HidKeyStroke.kt`, `HidReport.kt`, `KeyLayout.kt`, `KeymapTranslator.kt`, `UsQwertyKeymap.kt`, `GermanQwertzKeymap.kt`, `KeystrokeDispatcher.kt`, `DeltaDiffEngine.kt`
+    - `VariableParser.kt`, `VariableDescriptor.kt`, `MacroAction.kt`, `MacroRunner.kt`
+  - `service/`
+    - `HidDeviceService.kt`, `HidTransport.kt`, `BluetoothHidTransport.kt`, `UsbHidTransport.kt`, `HidConnectionState.kt`, `MultiHostConnectionState.kt`
+  - `ui/`
+    - `MainActivity.kt`, `MainScreen.kt`, `MainViewModel.kt`, `MainUiState.kt`, `MainUiIntent.kt`
+    - `components/` (`ConnectionHeader.kt`, `HotkeyDockBar.kt`, `SnippetsPadScreen.kt`, `SnippetCard.kt`, `VariablePromptBottomSheet.kt`, `ControlBar.kt`, `PresetSelector.kt`, `TranscriptionCanvas.kt`, `TouchpadCanvas.kt`, `ErrorBanner.kt`, `SettingsDialog.kt`, `HostConnectDialog.kt`)
+- `tools/companion/`
+  - `type4me_companion.py` (Zero-dependency Python 3 desktop companion script)
+  - `type4me_companion.ps1` (Zero-dependency PowerShell desktop companion script)
+- `tests/e2e/`
+  - `run_e2e_tests.py` (E2E simulation test runner)
+  - `tier1_features/`, `tier2_boundaries/`, `tier3_combinations/`, `tier4_realworld/`, `tier5_adversarial/`
+- `app/src/test/java/com/transcriptor/hid/` (JVM Unit test suites)

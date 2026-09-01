@@ -49,7 +49,10 @@ class MainActivity : ComponentActivity() {
                     presetRepository = app.presetRepository,
                     textRewriter = app.textRewriter,
                     keystrokeDispatcher = app.keystrokeDispatcher,
-                    hidTransport = app.hidTransport
+                    hidTransport = app.hidTransport,
+                    snippetRepository = app.snippetRepository,
+                    macroRepository = app.macroRepository,
+                    pairedHostRepository = app.pairedHostRepository
                 ) as T
             }
         }

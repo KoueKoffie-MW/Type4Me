@@ -1,11 +1,13 @@
 package com.transcriptor.hid.engine
 
+import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
+import kotlinx.coroutines.withContext
 
 /**
  * Keystroke Dispatcher & Transmission Engine interface.
@@ -39,6 +41,20 @@ interface KeystrokeDispatcher {
     suspend fun sendRawKeyStrokes(keyStrokes: List<HidKeyStroke>, delayMs: Long = 8L)
 
     /**
+     * Streams clipboard string to host, with optional bracketed paste mode
+     * (\x1b[200~ at start, \x1b[201~ at end) for terminal/editor safety.
+     *
+     * @param clipText The clipboard string to stream to the host.
+     * @param bracketedPaste Whether to wrap with bracketed paste control codes.
+     * @param delayMs Total inter-character cycle duration in milliseconds (default 8ms).
+     */
+    suspend fun streamClipboardToHost(
+        clipText: String,
+        bracketedPaste: Boolean = false,
+        delayMs: Long = 8L
+    )
+
+    /**
      * Resets the tracked host text state to empty without transmitting keystrokes.
      */
     fun resetState()
@@ -47,12 +63,14 @@ interface KeystrokeDispatcher {
         fun create(
             translator: KeymapTranslator,
             deltaDiffEngine: DeltaDiffEngine = DeltaDiffEngine.create(),
-            reportSender: suspend (ByteArray) -> Boolean = { true }
+            reportSender: suspend (ByteArray) -> Boolean = { true },
+            newlineDelayMs: Long = 30L
         ): KeystrokeDispatcher =
             DefaultKeystrokeDispatcher(
                 translator = translator,
                 deltaDiffEngine = deltaDiffEngine,
-                reportSender = reportSender
+                reportSender = reportSender,
+                newlineDelayMs = newlineDelayMs
             )
     }
 }
@@ -60,13 +78,15 @@ interface KeystrokeDispatcher {
 /**
  * Default coroutine-driven implementation of [KeystrokeDispatcher].
  *
- * Enforces serialized transmission and deterministic key-down ($t_{down}$) and key-up ($t_{up}$)
- * pacing to prevent dropped keystrokes on host OS input queues.
+ * Enforces serialized transmission, deterministic key-down ($t_{down}$) and key-up ($t_{up}$)
+ * pacing (8ms duty cycle by default), inter-line delay for Enter keys, and NonCancellable emergency
+ * zero release report guard to prevent stuck keys on host OS input queues.
  */
 class DefaultKeystrokeDispatcher(
     var translator: KeymapTranslator,
     val deltaDiffEngine: DeltaDiffEngine = DefaultDeltaDiffEngine(),
-    private val reportSender: suspend (ByteArray) -> Boolean = { true }
+    private val reportSender: suspend (ByteArray) -> Boolean = { true },
+    var newlineDelayMs: Long = 30L
 ) : KeystrokeDispatcher {
 
     private val mutex = Mutex()
@@ -112,30 +132,78 @@ class DefaultKeystrokeDispatcher(
         }
     }
 
+    override suspend fun streamClipboardToHost(
+        clipText: String,
+        bracketedPaste: Boolean,
+        delayMs: Long
+    ) {
+        if (clipText.isEmpty()) return
+        mutex.withLock {
+            val strokes = mutableListOf<HidKeyStroke>()
+
+            if (bracketedPaste) {
+                // Bracketed paste start: \x1b[200~
+                strokes.add(HidKeyStroke(HidConstants.MOD_NONE, HidConstants.KEY_ESCAPE))
+                strokes.addAll(translator.translateString("[200~"))
+            }
+
+            // Payload
+            strokes.addAll(translator.translateString(clipText))
+
+            if (bracketedPaste) {
+                // Bracketed paste end: \x1b[201~
+                strokes.add(HidKeyStroke(HidConstants.MOD_NONE, HidConstants.KEY_ESCAPE))
+                strokes.addAll(translator.translateString("[201~"))
+            }
+
+            transmitStrokesInternal(strokes, delayMs)
+            _currentHostText.value += clipText
+        }
+    }
+
     override fun resetState() {
         _currentHostText.value = ""
     }
 
     /**
      * Transmits a list of keystrokes with key-down and key-up reports and deterministic pacing.
+     * Enforces NonCancellable emergency zero-release report guard.
      */
     private suspend fun transmitStrokesInternal(strokes: List<HidKeyStroke>, delayMs: Long) {
         val tDown = if (delayMs > 0) maxOf(1L, delayMs / 2) else 0L
         val tUp = if (delayMs > 0) maxOf(1L, delayMs - tDown) else 0L
 
-        for (stroke in strokes) {
-            // 1. Key-Down Report
-            val downReport = stroke.toKeyDownReport().toByteArray()
-            reportSender(downReport)
-            if (tDown > 0) {
-                delay(tDown)
-            }
+        var completedNormally = false
+        try {
+            for (stroke in strokes) {
+                // 1. Key-Down Report
+                val downReport = stroke.toKeyDownReport().toByteArray()
+                reportSender(downReport)
+                if (tDown > 0) {
+                    delay(tDown)
+                }
 
-            // 2. Key-Up (Release) Report
-            val upReport = HidKeyStroke.RELEASE_REPORT.toByteArray()
-            reportSender(upReport)
-            if (tUp > 0) {
-                delay(tUp)
+                // 2. Key-Up (Release) Report
+                val upReport = HidKeyStroke.RELEASE_REPORT.toByteArray()
+                reportSender(upReport)
+                if (tUp > 0) {
+                    delay(tUp)
+                }
+
+                // 3. Inter-line delay for Enter key to accommodate shell syntax highlighters
+                if (delayMs > 0 && (stroke.usageId == HidConstants.KEY_ENTER || stroke.usageId == HidConstants.KEYPAD_ENTER)) {
+                    if (newlineDelayMs > 0) {
+                        delay(newlineDelayMs)
+                    }
+                }
+            }
+            completedNormally = true
+        } finally {
+            if (!completedNormally) {
+                withContext(NonCancellable) {
+                    val emergencyRelease = HidKeyStroke.RELEASE_REPORT.toByteArray()
+                    reportSender(emergencyRelease)
+                }
             }
         }
     }

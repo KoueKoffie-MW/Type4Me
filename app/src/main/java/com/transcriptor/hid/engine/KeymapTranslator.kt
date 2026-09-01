@@ -1,11 +1,25 @@
 package com.transcriptor.hid.engine
 
 /**
+ * Configuration for Enter / Newline submission behavior.
+ */
+enum class NewlineSubmissionMode {
+    /** Standard Enter (KEY_ENTER: 0x28, MOD_NONE) - Mandatory for Bash, Zsh, PowerShell, SSH, Vim, Nano */
+    TERMINAL_ENTER,
+    /** Soft-Enter (MOD_LSHIFT | KEY_ENTER: 0x28) - Designed for Slack, Teams, Discord, Claude Web UI */
+    CHAT_SOFT_ENTER
+}
+
+/**
  * Interface for translating Unicode characters and strings into HID keystrokes
  * based on a specific keyboard layout.
  */
 interface KeymapTranslator {
     val layout: KeyLayout
+
+    var newlineMode: NewlineSubmissionMode
+        get() = NewlineSubmissionMode.TERMINAL_ENTER
+        set(_) {}
 
     /**
      * Translates a single character into one or more HID keystrokes.
@@ -21,10 +35,13 @@ interface KeymapTranslator {
     fun translateString(text: String): List<HidKeyStroke>
 
     companion object {
-        fun create(layout: KeyLayout): KeymapTranslator {
+        fun create(
+            layout: KeyLayout,
+            newlineMode: NewlineSubmissionMode = NewlineSubmissionMode.TERMINAL_ENTER
+        ): KeymapTranslator {
             return when (layout) {
                 KeyLayout.US_QWERTY -> UsQwertyKeymap()
-                KeyLayout.GERMAN_QWERTZ -> GermanQwertzKeymap()
+                KeyLayout.GERMAN_QWERTZ -> GermanQwertzKeymap(newlineMode = newlineMode)
             }
         }
     }

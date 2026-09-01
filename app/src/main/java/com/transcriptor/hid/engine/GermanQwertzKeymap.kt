@@ -13,7 +13,9 @@ import java.text.Normalizer
  * - Smart quote and typography transliteration
  * - NFC Unicode composition normalization
  */
-class GermanQwertzKeymap : KeymapTranslator {
+class GermanQwertzKeymap(
+    override var newlineMode: NewlineSubmissionMode = NewlineSubmissionMode.TERMINAL_ENTER
+) : KeymapTranslator {
 
     override val layout: KeyLayout = KeyLayout.GERMAN_QWERTZ
 
@@ -22,7 +24,11 @@ class GermanQwertzKeymap : KeymapTranslator {
             // Control characters
             '\b' -> listOf(HidKeyStroke(HidConstants.MOD_NONE, HidConstants.KEY_BACKSPACE))
             '\t' -> listOf(HidKeyStroke(HidConstants.MOD_NONE, HidConstants.KEY_TAB))
-            '\n', '\r' -> listOf(HidKeyStroke(HidConstants.MOD_LSHIFT, HidConstants.KEY_ENTER)) // Soft-enter (Shift+Enter) prevents premature agent submission
+            '\u001b' -> listOf(HidKeyStroke(HidConstants.MOD_NONE, HidConstants.KEY_ESCAPE))
+            '\n', '\r' -> when (newlineMode) {
+                NewlineSubmissionMode.TERMINAL_ENTER -> listOf(HidKeyStroke(HidConstants.MOD_NONE, HidConstants.KEY_ENTER))
+                NewlineSubmissionMode.CHAT_SOFT_ENTER -> listOf(HidKeyStroke(HidConstants.MOD_LSHIFT, HidConstants.KEY_ENTER))
+            }
 
             // Space
             ' ' -> listOf(HidKeyStroke(HidConstants.MOD_NONE, HidConstants.KEY_SPACE))

@@ -1,7 +1,12 @@
 package com.transcriptor.hid.ui
 
 import com.transcriptor.hid.ai.PromptPreset
+import com.transcriptor.hid.data.db.CategoryEntity
+import com.transcriptor.hid.data.db.MacroEntity
+import com.transcriptor.hid.data.db.PairedHostEntity
+import com.transcriptor.hid.data.db.SnippetEntity
 import com.transcriptor.hid.engine.KeyLayout
+import com.transcriptor.hid.engine.VariableDescriptor
 import com.transcriptor.hid.service.HidConnectionState
 
 /**
@@ -12,6 +17,11 @@ enum class AppMode {
      * Speech-to-text dictation canvas with AI prompt rewriting.
      */
     KEYBOARD,
+
+    /**
+     * Fast-dispatch developer code snippets pad and macro runner.
+     */
+    SNIPPETS,
 
     /**
      * Full-screen tactile precision trackpad and mouse.
@@ -50,7 +60,22 @@ data class MainUiState(
     val speakerAccent: String = "None",
     val spokenLanguage: String = "English",
     val speakerAccentInput: String = "None",
-    val spokenLanguageInput: String = "English"
+    val spokenLanguageInput: String = "English",
+
+    // M3: Snippets Pad, AST & Macros
+    val categories: List<CategoryEntity> = emptyList(),
+    val selectedCategoryId: Long? = null,
+    val snippets: List<SnippetEntity> = emptyList(),
+    val favorites: List<SnippetEntity> = emptyList(),
+    val macros: List<MacroEntity> = emptyList(),
+    val snippetsSearchQuery: String = "",
+    val activePromptSnippet: SnippetEntity? = null,
+    val activePromptMacro: MacroEntity? = null,
+    val activePrompts: List<VariableDescriptor.Prompt> = emptyList(),
+
+    // M4: Multi-Host Management
+    val pairedHosts: List<PairedHostEntity> = emptyList(),
+    val activeHost: PairedHostEntity? = null
 ) {
     /**
      * Calculated word count for dictation telemetry.

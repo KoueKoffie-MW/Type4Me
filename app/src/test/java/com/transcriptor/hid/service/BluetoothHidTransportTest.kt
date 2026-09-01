@@ -108,7 +108,7 @@ class BluetoothHidTransportTest {
     @Test
     fun testReportDescriptorSpecification() {
         val desc = HID_COMBO_REPORT_DESCRIPTOR
-        assertEquals("Report descriptor must be exactly 129 bytes (Composite Keyboard + Mouse)", 129, desc.size)
+        assertEquals("Report descriptor must be exactly 154 bytes (Composite Keyboard + Mouse + Consumer Control)", 154, desc.size)
 
         // Verify Usage Page (Generic Desktop: 0x05, 0x01)
         assertEquals(0x05.toByte(), desc[0])
@@ -123,7 +123,7 @@ class BluetoothHidTransportTest {
         assertEquals(0x01.toByte(), desc[5])
 
         // Verify End Collection (0xC0)
-        assertEquals(0xC0.toByte(), desc[128])
+        assertEquals(0xC0.toByte(), desc[153])
     }
 
     @Test

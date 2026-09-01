@@ -1,6 +1,10 @@
 package com.transcriptor.hid.ui
 
 import com.transcriptor.hid.ai.PromptPreset
+import com.transcriptor.hid.data.db.MacroEntity
+import com.transcriptor.hid.data.db.PairedHostEntity
+import com.transcriptor.hid.data.db.SnippetEntity
+import com.transcriptor.hid.engine.HidKeyStroke
 import com.transcriptor.hid.engine.KeyLayout
 
 /**
@@ -35,22 +39,22 @@ sealed interface MainUiIntent {
     /**
      * Fired when the "✨ Rewrite with AI" action button is tapped.
      */
-    object TriggerAiRewrite : MainUiIntent
+    data object TriggerAiRewrite : MainUiIntent
 
     /**
      * Fired when the "Send to PC" keystrokes button / FAB is tapped.
      */
-    object SendBufferedKeystrokes : MainUiIntent
+    data object SendBufferedKeystrokes : MainUiIntent
 
     /**
      * Fired when the "Clear" canvas button is tapped.
      */
-    object ClearText : MainUiIntent
+    data object ClearText : MainUiIntent
 
     /**
      * Fired when the "Undo" action is tapped to revert the last edit or AI rewrite.
      */
-    object UndoText : MainUiIntent
+    data object UndoText : MainUiIntent
 
     /**
      * Fired when creating or saving a custom AI prompt preset.
@@ -74,22 +78,22 @@ sealed interface MainUiIntent {
     /**
      * Closes the preset management dialog.
      */
-    object ClosePresetDialog : MainUiIntent
+    data object ClosePresetDialog : MainUiIntent
 
     /**
      * Dismisses the active error message banner or snackbar.
      */
-    object DismissError : MainUiIntent
+    data object DismissError : MainUiIntent
 
     /**
      * Opens the Gemini API and configuration settings dialog.
      */
-    object OpenSettings : MainUiIntent
+    data object OpenSettings : MainUiIntent
 
     /**
      * Closes the settings dialog without saving unsaved edits.
      */
-    object CloseSettings : MainUiIntent
+    data object CloseSettings : MainUiIntent
 
     /**
      * Fired when the Gemini API key input field changes.
@@ -99,10 +103,10 @@ sealed interface MainUiIntent {
     /**
      * Toggles visibility (masking/unmasking) of the Gemini API key.
      */
-    object ToggleApiKeyVisibility : MainUiIntent
+    data object ToggleApiKeyVisibility : MainUiIntent
 
     /**
-     * Fired when a Gemini model is selected (e.g. gemini-3.7-flash).
+     * Fired when a Gemini model is selected (e.g. gemini-3.5-flash-lite).
      */
     data class SelectModel(val model: String) : MainUiIntent
 
@@ -119,22 +123,22 @@ sealed interface MainUiIntent {
     /**
      * Persists the current settings (API key, model, accent, language) to DataStore.
      */
-    object SaveSettings : MainUiIntent
+    data object SaveSettings : MainUiIntent
 
     /**
      * Tests the current Gemini API key by making a lightweight test call.
      */
-    object TestApiKey : MainUiIntent
+    data object TestApiKey : MainUiIntent
 
     /**
      * Opens the Bluetooth host connection & paired devices dialog.
      */
-    object OpenHostConnectDialog : MainUiIntent
+    data object OpenHostConnectDialog : MainUiIntent
 
     /**
      * Closes the Bluetooth host connection dialog.
      */
-    object CloseHostConnectDialog : MainUiIntent
+    data object CloseHostConnectDialog : MainUiIntent
 
     /**
      * Connects to a specific paired Bluetooth host device by MAC address.
@@ -144,10 +148,10 @@ sealed interface MainUiIntent {
     /**
      * Disconnects the currently active Bluetooth HID host connection.
      */
-    object DisconnectActiveHost : MainUiIntent
+    data object DisconnectActiveHost : MainUiIntent
 
     /**
-     * Switches between Voice Keyboard mode and Touchpad Mouse mode.
+     * Switches operating mode (Voice Keyboard, Snippets Pad, Touchpad Mouse).
      */
     data class SwitchMode(val mode: AppMode) : MainUiIntent
 
@@ -159,20 +163,84 @@ sealed interface MainUiIntent {
     /**
      * Transmits a mouse left-click event (press and immediate release).
      */
-    object SendMouseLeftClick : MainUiIntent
+    data object SendMouseLeftClick : MainUiIntent
 
     /**
      * Transmits a mouse right-click event (press and immediate release).
      */
-    object SendMouseRightClick : MainUiIntent
+    data object SendMouseRightClick : MainUiIntent
 
     /**
      * Transmits a mouse middle-click event.
      */
-    object SendMouseMiddleClick : MainUiIntent
+    data object SendMouseMiddleClick : MainUiIntent
 
     /**
      * Transmits a vertical mouse scroll wheel delta.
      */
     data class SendMouseScroll(val wheel: Int) : MainUiIntent
+
+    // --- Milestone 3: Snippets & Macros Intents ---
+
+    /**
+     * Selects a category filter in Snippets Pad (null selects "All").
+     */
+    data class SelectSnippetCategory(val categoryId: Long?) : MainUiIntent
+
+    /**
+     * Updates the full-text search query in Snippets Pad.
+     */
+    data class UpdateSnippetSearchQuery(val query: String) : MainUiIntent
+
+    /**
+     * Triggers typing dispatch for a snippet (evaluates variables / opens prompt modal if needed).
+     */
+    data class TriggerSnippet(val snippet: SnippetEntity) : MainUiIntent
+
+    /**
+     * Submits entered parameter answers from the VariablePromptBottomSheet.
+     */
+    data class SubmitPromptAnswers(val answers: Map<String, String>) : MainUiIntent
+
+    /**
+     * Dismisses the variable prompt modal bottom sheet.
+     */
+    data object DismissPromptDialog : MainUiIntent
+
+    /**
+     * Toggles snippet favorite status.
+     */
+    data class ToggleSnippetFavorite(val snippet: SnippetEntity) : MainUiIntent
+
+    /**
+     * Deletes a snippet.
+     */
+    data class DeleteSnippet(val snippet: SnippetEntity) : MainUiIntent
+
+    /**
+     * Saves or updates a snippet.
+     */
+    data class SaveSnippet(val snippet: SnippetEntity) : MainUiIntent
+
+    /**
+     * Triggers execution of a multi-step macro.
+     */
+    data class TriggerMacro(val macro: MacroEntity) : MainUiIntent
+
+    /**
+     * Sends a raw sequence of HID keystrokes (e.g. from HotkeyDockBar).
+     */
+    data class SendRawHotkey(val strokes: List<HidKeyStroke>) : MainUiIntent
+
+    /**
+     * Streams Android clipboard text to host workstation.
+     */
+    data class StreamClipboardToHost(val clipText: String, val bracketedPaste: Boolean = false) : MainUiIntent
+
+    // --- Milestone 4: Multi-Host Switching Intents ---
+
+    /**
+     * Triggers 6-Phase Atomic host switching to a target paired host.
+     */
+    data class SwitchHost(val target: PairedHostEntity) : MainUiIntent
 }

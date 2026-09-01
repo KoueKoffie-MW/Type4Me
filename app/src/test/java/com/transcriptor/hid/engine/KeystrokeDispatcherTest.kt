@@ -2,6 +2,9 @@ package com.transcriptor.hid.engine
 
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
+import kotlinx.coroutines.cancelAndJoin
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
@@ -150,14 +153,84 @@ class KeystrokeDispatcherTest {
     }
 
     @Test
-    fun testGermanKeymapWithDispatcher() = runBlocking {
-        dispatcher.translator = GermanQwertzKeymap()
-        dispatcher.dispatchBurst("äöü", delayMs = 0L)
+    fun testStreamClipboardToHostWithoutBracketedPaste() = runBlocking {
+        val clip = "git status"
+        dispatcher.streamClipboardToHost(clip, bracketedPaste = false, delayMs = 0L)
 
-        assertEquals("äöü", dispatcher.currentHostText.value)
-        assertEquals(6, sentReports.size) // 3 chars * 2 reports = 6
-        assertEquals(HidConstants.KEY_APOSTROPHE, sentReports[0][2]) // ä
-        assertEquals(HidConstants.KEY_SEMICOLON, sentReports[2][2])  // ö
-        assertEquals(HidConstants.KEY_LEFTBRACE, sentReports[4][2])  // ü
+        assertEquals("git status", dispatcher.currentHostText.value)
+        // 10 chars * 2 reports (down + up) = 20 reports + 1 final emergency release from finally block
+        // Every dispatch cycle sends down/up reports and executes finally emergency release
+        assertTrue(sentReports.size >= 20)
+        // Last report must be zero release
+        val lastReport = sentReports.last()
+        assertEquals(0.toByte(), lastReport[0])
+        assertEquals(0.toByte(), lastReport[2])
+    }
+
+    @Test
+    fun testStreamClipboardToHostWithBracketedPasteMode() = runBlocking {
+        val code = "ls"
+        dispatcher.streamClipboardToHost(code, bracketedPaste = true, delayMs = 0L)
+
+        assertEquals("ls", dispatcher.currentHostText.value)
+        // Starts with ESC (0x29)
+        assertEquals(HidConstants.MOD_NONE, sentReports[0][0])
+        assertEquals(HidConstants.KEY_ESCAPE, sentReports[0][2])
+
+        // Verify ESC appears twice: once in [200~ and once in [201~
+        val escapePressCount = sentReports.count { it[0] == HidConstants.MOD_NONE && it[2] == HidConstants.KEY_ESCAPE }
+        assertEquals(2, escapePressCount)
+    }
+
+    @Test
+    fun testEmergencyReleaseOnCancellation() = runBlocking {
+        val slowDispatcher = DefaultKeystrokeDispatcher(
+            translator = UsQwertyKeymap(),
+            reportSender = { report ->
+                sentReports.add(report.copyOf())
+                true
+            }
+        )
+
+        val job = launch {
+            slowDispatcher.dispatchBurst("abcdefghij", delayMs = 100L)
+        }
+
+        delay(30L)
+        job.cancelAndJoin()
+
+        // Emergency release report (all zeros) must be sent on cancellation
+        assertTrue("Expected reports to be captured", sentReports.isNotEmpty())
+        val lastReport = sentReports.last()
+        assertEquals(0.toByte(), lastReport[0])
+        assertEquals(0.toByte(), lastReport[2])
+    }
+
+    @Test
+    fun testGermanDeadKeySpaceSynthesisInDispatcher() = runBlocking {
+        dispatcher.translator = GermanQwertzKeymap()
+        dispatcher.dispatchBurst("^", delayMs = 0L)
+
+        assertEquals("^", dispatcher.currentHostText.value)
+        // '^' produces 2 strokes: KEY_GRAVE then KEY_SPACE -> 4 reports
+        assertEquals(HidConstants.KEY_GRAVE, sentReports[0][2]) // Down ^
+        assertEquals(0.toByte(), sentReports[1][2])             // Up ^
+        assertEquals(HidConstants.KEY_SPACE, sentReports[2][2]) // Down Space
+        assertEquals(0.toByte(), sentReports[3][2])             // Up Space
+    }
+
+    @Test
+    fun testGermanKeymapNewlineSubmissionModes() = runBlocking {
+        val deTerminal = GermanQwertzKeymap(newlineMode = NewlineSubmissionMode.TERMINAL_ENTER)
+        val strokesTerminal = deTerminal.translateChar('\n')
+        assertEquals(1, strokesTerminal.size)
+        assertEquals(HidConstants.MOD_NONE, strokesTerminal[0].modifierMask)
+        assertEquals(HidConstants.KEY_ENTER, strokesTerminal[0].usageId)
+
+        val deChat = GermanQwertzKeymap(newlineMode = NewlineSubmissionMode.CHAT_SOFT_ENTER)
+        val strokesChat = deChat.translateChar('\n')
+        assertEquals(1, strokesChat.size)
+        assertEquals(HidConstants.MOD_LSHIFT, strokesChat[0].modifierMask)
+        assertEquals(HidConstants.KEY_ENTER, strokesChat[0].usageId)
     }
 }

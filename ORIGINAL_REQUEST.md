@@ -42,3 +42,51 @@ Perform an exhaustive multi-agent audit across the entire codebase to detect all
 - [ ] Settings configuration is fully accessible via UI, allowing the user to view/save the Gemini API key and switch models.
 - [ ] UI renders adaptively and legibly in both Portrait and Landscape orientations without squashed or clipped controls.
 - [ ] All newly discovered bugs during the audit are documented and resolved.
+
+## Follow-up — 2026-09-01T21:55:44Z
+
+Implementation of the **Type4Me Next-Gen Developer Power Suite**: Virtual Developer Hotkey Bar, Android Clipboard-to-HID Keystroke Streamer, Persistent Snippets & Macro Engine (Room DB), Multi-Host Quick Switcher, and Dual-Tier Zero-Install Desktop Context Companion.
+
+Working directory: c:\Users\Jan\Documents\antigravity\nifty-galileo
+Integrity mode: development
+
+## Requirements
+
+### R1. Developer & Terminal Hotkey Bar (HID Page 0x07 Control Keys)
+Implement an accessible, responsive Hotkey Dock Bar directly above or integrated with the Voice Keyboard canvas:
+- Hardware terminal & navigation keys: `Esc`, `Tab`, `Ctrl+C`, `Ctrl+Z`, `Ctrl+D`, `Ctrl+L`, `Arrow Up/Down/Left/Right`, `Alt+Tab`, and expandable `F-Keys (F1-F12)`.
+- Keystroke Dispatcher integration sending pure 8-byte HID reports with deterministic 8ms pacing and `NonCancellable` emergency modifier release guard.
+- Clipboard Streamer button: reads Android clipboard and converts strings into hardware HID keystroke packets, supporting terminal bracketed paste mode (`\x1b[200~` ... `\x1b[201~`) to prevent staircase indentation in Vim/Bash/Zsh.
+
+### R2. Quick Snippets & Action Macros Pad (Room DB 2.6)
+Implement a persistent Snippets & Macros engine:
+- SQLite/Room database entities (`CategoryEntity`, `SnippetEntity`, `MacroEntity`, `PairedHostEntity`) with migration/seeding.
+- Pre-loaded Developer Tool Pack with 20+ categorized production snippets (Git, Docker, Pytest, Terminal, AI Coding Prompts).
+- Jetpack Compose Snippets Pad UI with category filter chips, search/filter, and 1-tap instant keystroke transmission.
+- Single-pass template variable interpolation (`{{timestamp}}`, `{{clipboard}}`, `{{prompt}}`).
+
+### R3. Multi-Host Quick-Switching UI & Registry
+Implement persistent paired host management:
+- Persistent `PairedHostEntity` storage with custom alias naming (e.g., "Work PC", "Private Laptop", "Home Server").
+- Fast 1-tap switching dropdown widget integrated into the `ConnectionHeader`.
+- Graceful disconnect-and-reconnect state flow.
+
+### R4. Dual-Tier Zero-Install Desktop Context Companion
+Provide a lightweight zero-install desktop companion script (`tools/companion/type4me_companion.py` / `.ps1`):
+- Broadcasts current active window title / selected text to the phone over local BLE/HTTP socket when permitted on developer workstations.
+- Allows Type4Me on Android to ingest host context into Gemini prompt engineering without compromising the primary zero-host air-gap fallback.
+
+## Acceptance Criteria
+
+### Build & Test Health
+- [ ] `./gradlew test` passes 100% with all new and existing JVM unit tests.
+- [ ] `python tests/e2e/run_e2e_tests.py` passes 100% across Tiers 1-5.
+- [ ] `./gradlew assembleRelease` compiles cleanly without warnings.
+
+### Functional & UI Verification
+- [ ] Developer Hotkey Bar renders responsively in portrait and landscape with functional terminal key injection.
+- [ ] Snippets Pad renders preloaded templates and dispatches 1-tap keystrokes over Bluetooth HID.
+- [ ] Clipboard Streamer converts mobile clipboard into cleanly paced host keystrokes.
+- [ ] Multi-Host switcher displays bonded hosts and allows switching.
+- [ ] Desktop companion script is runnable standalone with zero dependencies.
+

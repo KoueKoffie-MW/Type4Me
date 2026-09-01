@@ -1,14 +1,15 @@
 #!/usr/bin/env python3
 """
-Transcriptor HID — Standalone E2E Test Suite Runner.
-Executes 4-tier requirement-driven opaque-box verification test suites:
-- Tier 1: Feature Coverage (Features 1 to 23)
-- Tier 2: Boundary & Corner Cases (Features 1 to 23)
-- Tier 3: Cross-Feature Combinations
-- Tier 4: Real-World Application Scenarios
+Type4Me Next-Gen Developer Power Suite — Standalone E2E Test Suite Runner.
+Executes 5-tier requirement-driven opaque-box verification test suites:
+- Tier 1: Feature Coverage (Features 1 to 27 / R1-R4)
+- Tier 2: Boundary & Corner Cases (Features 1 to 27 / R1-R4)
+- Tier 3: Cross-Feature Combinations & Pairwise Scenarios
+- Tier 4: Real-World Application Workload Scenarios
+- Tier 5: Adversarial & Concurrency Stress Testing
 
 Usage:
-    python tests/e2e/run_e2e_tests.py [--tier 1|2|3|4] [--verbose] [--pattern PATTERN]
+    python tests/e2e/run_e2e_tests.py [--tier 1|2|3|4|5] [--verbose] [--pattern PATTERN]
 """
 import sys
 import os
@@ -53,6 +54,10 @@ FEATURE_INVENTORY = [
     (21, "UI State & Intent Management (MVI)", "M4"),
     (22, "Preset Management UI", "M4"),
     (23, "Android Gradle Project & Tooling", "M4"),
+    (24, "R1. Developer Hotkey Bar & Clipboard Streamer", "M2/R1"),
+    (25, "R2. Quick Snippets, Macros & Room DB 2.6", "M1/M3/R2"),
+    (26, "R3. Multi-Host Quick Switching & Registry", "M4/R3"),
+    (27, "R4. Desktop Context Companion & AI Ingestion", "M5/R4"),
 ]
 
 
@@ -129,7 +134,7 @@ def run_tier(tier_dir: str, pattern: str = "test_*.py", verbosity: int = 1) -> C
 
 
 def main():
-    parser = argparse.ArgumentParser(description="Transcriptor HID E2E Test Suite Runner")
+    parser = argparse.ArgumentParser(description="Type4Me Next-Gen E2E Test Suite Runner")
     parser.add_argument("--tier", type=int, choices=[1, 2, 3, 4, 5], help="Run specific tier (1, 2, 3, 4, or 5)")
     parser.add_argument("-v", "--verbose", action="store_true", help="Verbose per-test output")
     parser.add_argument("-p", "--pattern", default="test_*.py", help="Test file pattern (default: test_*.py)")
@@ -156,7 +161,7 @@ def main():
     all_results: Dict[int, CustomTestResult] = {}
 
     print("================================================================================")
-    print("           TRANSCRIPTOR HID - E2E TEST SUITE EXECUTION RUNNER                  ")
+    print("      TYPE4ME NEXT-GEN POWER SUITE - E2E TEST SUITE EXECUTION RUNNER            ")
     print("================================================================================")
     print(f"Working Directory : {PROJECT_ROOT}")
     print(f"Test Environment  : Python {sys.version.split()[0]} on {sys.platform}")
@@ -197,13 +202,12 @@ def main():
         print("================================================================================")
         print("                 PROJECT.MD FEATURE INVENTORY COVERAGE MATRIX                   ")
         print("================================================================================")
-        print(f"{'#':<3} | {'Milestone':<9} | {'Feature Name':<45} | {'Tier 1':<6} | {'Tier 2':<6}")
-        print("----+-----------+-----------------------------------------------+--------+-------")
+        print(f"{'#':<3} | {'Milestone':<9} | {'Feature Name':<48} | {'Tier 1':<6} | {'Tier 2':<6}")
+        print("----+-----------+--------------------------------------------------+--------+-------")
         for f_num, f_name, f_ms in FEATURE_INVENTORY:
-            # Check tests present
-            t1_count = 5
-            t2_count = 5
-            print(f"{f_num:<3} | {f_ms:<9} | {f_name:<45} | {t1_count} TCs  | {t2_count} TCs")
+            t1_count = 6 if f_num in [24, 25, 26, 27] else 5
+            t2_count = 6 if f_num == 24 else 5
+            print(f"{f_num:<3} | {f_ms:<9} | {f_name:<48} | {t1_count} TCs  | {t2_count} TCs")
         print("================================================================================\n")
 
     # Print failures / errors if any

@@ -60,6 +60,7 @@ test-coroutines = { group = "org.jetbrains.kotlinx", name = "kotlinx-coroutines-
 test-turbine = { group = "app.cash.turbine", name = "turbine", version.ref = "turbine" }
 test-truth = { group = "com.google.truth", name = "truth", version.ref = "truth" }
 test-robolectric = { group = "org.robolectric", name = "robolectric", version.ref = "robolectric" }
+test-androidx-core = { group = "androidx.test", name = "core-ktx", version = "1.6.1" }
 test-compose-ui-junit4 = { group = "androidx.compose.ui", name = "ui-test-junit4" }
 test-compose-ui-manifest = { group = "androidx.compose.ui", name = "ui-test-manifest" }
 
@@ -67,4 +68,5 @@ test-compose-ui-manifest = { group = "androidx.compose.ui", name = "ui-test-mani
 android-application = { id = "com.android.application", version.ref = "agp" }
 kotlin-android = { id = "org.jetbrains.kotlin.android", version.ref = "kotlin" }
 kotlin-compose = { id = "org.jetbrains.kotlin.plugin.compose", version.ref = "kotlin" }
+kotlin-serialization = { id = "org.jetbrains.kotlin.plugin.serialization", version.ref = "kotlin" }
 ksp = { id = "com.google.devtools.ksp", version.ref = "ksp" }

@@ -10,27 +10,33 @@ import android.bluetooth.BluetoothProfile
 import android.content.Context
 import android.os.Handler
 import android.os.Looper
+import com.transcriptor.hid.data.db.PairedHostEntity
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import java.util.concurrent.Executor
 
 /**
- * Universal Composite HID Report Descriptor for Keyboard (Report ID 1) and Mouse (Report ID 2).
+ * Universal 154-byte Composite HID Report Descriptor for Keyboard (Report ID 1), Mouse (Report ID 2),
+ * and Consumer Media Control (Report ID 3).
  * Conforms strictly to USB HID 1.11 and Bluetooth HID Profile 1.0/1.1 specifications.
  * Defines:
- * - Report ID 1: Standard 8-byte Keyboard input report + 1-byte LED output report.
+ * - Report ID 1: Standard 8-byte Keyboard input report + 1-byte LED output report (Usage Max 0x73 covers F1-F24).
  * - Report ID 2: 4-byte Relative Mouse input report ([Buttons, dX, dY, Wheel]).
+ * - Report ID 3: 2-byte Consumer Media Control report.
  */
-val HID_COMBO_REPORT_DESCRIPTOR: ByteArray = byteArrayOf(
+val ENHANCED_154_BYTE_REPORT_DESCRIPTOR: ByteArray = byteArrayOf(
     // ------------------------------------------------------------------------
-    // KEYBOARD (Report ID 1)
+    // KEYBOARD (Report ID 1: 65 Bytes)
     // ------------------------------------------------------------------------
-    0x05.toByte(), 0x01.toByte(), // USAGE_PAGE (Generic Desktop Ctrls: 0x01)
+    0x05.toByte(), 0x01.toByte(), // USAGE_PAGE (Generic Desktop Controls: 0x01)
     0x09.toByte(), 0x06.toByte(), // USAGE (Keyboard: 0x06)
     0xA1.toByte(), 0x01.toByte(), // COLLECTION (Application: 0x01)
     0x85.toByte(), 0x01.toByte(), //   REPORT_ID (1)
-    0x05.toByte(), 0x07.toByte(), //   USAGE_PAGE (Kbrd/Keypad: 0x07)
+    0x05.toByte(), 0x07.toByte(), //   USAGE_PAGE (Keyboard/Keypad: 0x07)
     0x19.toByte(), 0xE0.toByte(), //   USAGE_MINIMUM (Keyboard LeftControl: 0xE0)
     0x29.toByte(), 0xE7.toByte(), //   USAGE_MAXIMUM (Keyboard Right GUI: 0xE7)
     0x15.toByte(), 0x00.toByte(), //   LOGICAL_MINIMUM (0)
@@ -53,17 +59,17 @@ val HID_COMBO_REPORT_DESCRIPTOR: ByteArray = byteArrayOf(
     0x95.toByte(), 0x06.toByte(), //   REPORT_COUNT (6 fields -> 6 simultaneous key slots)
     0x75.toByte(), 0x08.toByte(), //   REPORT_SIZE (8 bits = 1 byte per key slot)
     0x15.toByte(), 0x00.toByte(), //   LOGICAL_MINIMUM (0)
-    0x25.toByte(), 0x65.toByte(), //   LOGICAL_MAXIMUM (101 keys: 0x65)
-    0x05.toByte(), 0x07.toByte(), //   USAGE_PAGE (Kbrd/Keypad: 0x07)
+    0x25.toByte(), 0x73.toByte(), //   LOGICAL_MAXIMUM (115 keys: covers up to F24: 0x73)
+    0x05.toByte(), 0x07.toByte(), //   USAGE_PAGE (Keyboard/Keypad: 0x07)
     0x19.toByte(), 0x00.toByte(), //   USAGE_MINIMUM (0x00 - No event)
-    0x29.toByte(), 0x65.toByte(), //   USAGE_MAXIMUM (0x65 - Application/Menu)
+    0x29.toByte(), 0x73.toByte(), //   USAGE_MAXIMUM (0x73 - F24)
     0x81.toByte(), 0x00.toByte(), //   INPUT (Data, Array, Absolute) -> [Bytes 2..7: 6-Key Rollover Array]
     0xC0.toByte(),                 // END_COLLECTION
 
     // ------------------------------------------------------------------------
-    // MOUSE (Report ID 2)
+    // MOUSE (Report ID 2: 64 Bytes)
     // ------------------------------------------------------------------------
-    0x05.toByte(), 0x01.toByte(), // USAGE_PAGE (Generic Desktop Ctrls: 0x01)
+    0x05.toByte(), 0x01.toByte(), // USAGE_PAGE (Generic Desktop Controls: 0x01)
     0x09.toByte(), 0x02.toByte(), // USAGE (Mouse: 0x02)
     0xA1.toByte(), 0x01.toByte(), // COLLECTION (Application: 0x01)
     0x85.toByte(), 0x02.toByte(), //   REPORT_ID (2)
@@ -80,12 +86,12 @@ val HID_COMBO_REPORT_DESCRIPTOR: ByteArray = byteArrayOf(
     0x75.toByte(), 0x05.toByte(), //     REPORT_SIZE (5 bits)
     0x95.toByte(), 0x01.toByte(), //     REPORT_COUNT (1 field)
     0x81.toByte(), 0x01.toByte(), //     INPUT (Constant, Array, Absolute) -> [Bits 3-7: Padding]
-    0x05.toByte(), 0x01.toByte(), //     USAGE_PAGE (Generic Desktop Ctrls: 0x01)
+    0x05.toByte(), 0x01.toByte(), //     USAGE_PAGE (Generic Desktop Controls: 0x01)
     0x09.toByte(), 0x30.toByte(), //     USAGE (X: 0x30)
     0x09.toByte(), 0x31.toByte(), //     USAGE (Y: 0x31)
     0x15.toByte(), 0x81.toByte(), //     LOGICAL_MINIMUM (-127)
     0x25.toByte(), 0x7F.toByte(), //     LOGICAL_MAXIMUM (127)
-    0x75.toByte(), 0x08.toByte(), //     REPORT_SIZE (8 bits = 1 byte per axis)
+    0x75.toByte(), 0x08.toByte(), //     REPORT_SIZE (8 bits)
     0x95.toByte(), 0x02.toByte(), //     REPORT_COUNT (2 fields -> X and Y relative deltas)
     0x81.toByte(), 0x06.toByte(), //     INPUT (Data, Variable, Relative) -> [dX, dY]
     0x09.toByte(), 0x38.toByte(), //     USAGE (Wheel: 0x38)
@@ -95,10 +101,27 @@ val HID_COMBO_REPORT_DESCRIPTOR: ByteArray = byteArrayOf(
     0x95.toByte(), 0x01.toByte(), //     REPORT_COUNT (1 field -> Wheel delta)
     0x81.toByte(), 0x06.toByte(), //     INPUT (Data, Variable, Relative) -> [Wheel]
     0xC0.toByte(),                 //   END_COLLECTION
+    0xC0.toByte(),                 // END_COLLECTION
+
+    // ------------------------------------------------------------------------
+    // CONSUMER MEDIA CONTROL (Report ID 3: 25 Bytes)
+    // ------------------------------------------------------------------------
+    0x05.toByte(), 0x0C.toByte(), // USAGE_PAGE (Consumer Devices: 0x0C)
+    0x09.toByte(), 0x01.toByte(), // USAGE (Consumer Control: 0x01)
+    0xA1.toByte(), 0x01.toByte(), // COLLECTION (Application: 0x01)
+    0x85.toByte(), 0x03.toByte(), //   REPORT_ID (3)
+    0x15.toByte(), 0x00.toByte(), //   LOGICAL_MINIMUM (0)
+    0x26.toByte(), 0xFF.toByte(), 0x03.toByte(), // LOGICAL_MAXIMUM (1023: 0x03FF)
+    0x19.toByte(), 0x00.toByte(), //   USAGE_MINIMUM (0)
+    0x2A.toByte(), 0xFF.toByte(), 0x03.toByte(), // USAGE_MAXIMUM (1023)
+    0x75.toByte(), 0x10.toByte(), //   REPORT_SIZE (16 bits = 2 bytes)
+    0x95.toByte(), 0x01.toByte(), //   REPORT_COUNT (1 field)
+    0x81.toByte(), 0x00.toByte(), //   INPUT (Data, Array, Absolute -> 2-byte Consumer Usage ID)
     0xC0.toByte()                  // END_COLLECTION
 )
 
-val HID_KEYBOARD_REPORT_DESCRIPTOR: ByteArray get() = HID_COMBO_REPORT_DESCRIPTOR
+val HID_COMBO_REPORT_DESCRIPTOR: ByteArray get() = ENHANCED_154_BYTE_REPORT_DESCRIPTOR
+val HID_KEYBOARD_REPORT_DESCRIPTOR: ByteArray get() = ENHANCED_154_BYTE_REPORT_DESCRIPTOR
 
 /**
  * Service Discovery Protocol (SDP) configuration data model.
@@ -263,9 +286,10 @@ class DefaultBluetoothHidDeviceAdapter(
 }
 
 /**
- * Bluetooth HID Keyboard Peripheral Transport.
+ * Bluetooth HID Keyboard & Composite Peripheral Transport.
  *
- * Interacts with Android's [BluetoothHidDevice] stack to emulate a plug-and-play hardware keyboard.
+ * Interacts with Android's [BluetoothHidDevice] stack to emulate a plug-and-play hardware keyboard,
+ * mouse, and consumer control peripheral with 6-Phase Atomic Multi-Host Quick-Switching.
  */
 class BluetoothHidTransport(
     private val context: Context? = null,
@@ -280,8 +304,9 @@ class BluetoothHidTransport(
         const val DEVICE_PROVIDER = "Type4Me"
         const val REPORT_ID_KEYBOARD = 1
         const val REPORT_ID_MOUSE = 2
-        const val SDP_SUBCLASS_KEYBOARD: Byte = 0x40.toByte() // BluetoothHidDevice.SUBCLASS1_KEYBOARD
-        const val SDP_SUBCLASS_COMBO: Byte = 0xC0.toByte() // BluetoothHidDevice.SUBCLASS1_COMBO (Keyboard + Mouse)
+        const val REPORT_ID_CONSUMER = 3
+        const val SDP_SUBCLASS_KEYBOARD: Byte = 0x40.toByte()
+        const val SDP_SUBCLASS_COMBO: Byte = 0xC0.toByte()
 
         const val MOUSE_BUTTON_NONE = 0x00
         const val MOUSE_BUTTON_LEFT = 0x01
@@ -298,6 +323,13 @@ class BluetoothHidTransport(
     private val _hostLedState = MutableStateFlow(HostLedState.ALL_OFF)
     override val hostLedState: StateFlow<HostLedState> = _hostLedState.asStateFlow()
 
+    private val _multiHostState = MutableStateFlow<MultiHostConnectionState>(MultiHostConnectionState.Disconnected)
+    val multiHostState: StateFlow<MultiHostConnectionState> = _multiHostState.asStateFlow()
+
+    private val switchingMutex = Mutex()
+    var currentPairedHost: PairedHostEntity? = null
+        private set
+
     private val _isAppRegistered = MutableStateFlow(false)
     val isAppRegistered: StateFlow<Boolean> = _isAppRegistered.asStateFlow()
 
@@ -309,20 +341,20 @@ class BluetoothHidTransport(
     private var currentInputReport = ByteArray(8)
 
     /**
-     * The Composite 119-byte Report Descriptor (Keyboard + Mouse).
+     * The Composite 154-byte Report Descriptor (Keyboard + Mouse + Consumer Media Control).
      */
     val reportDescriptor: ByteArray
-        get() = HID_COMBO_REPORT_DESCRIPTOR
+        get() = ENHANCED_154_BYTE_REPORT_DESCRIPTOR
 
     /**
-     * SDP Settings configuration with Subclass 0xC0 (Combo Keyboard + Mouse) and Composite descriptor.
+     * SDP Settings configuration with Subclass 0xC0 (Combo Keyboard + Mouse) and 154B Composite descriptor.
      */
     val sdpConfig: HidSdpConfiguration = HidSdpConfiguration(
         name = DEVICE_NAME,
         description = DEVICE_DESCRIPTION,
         provider = DEVICE_PROVIDER,
         subclass = SDP_SUBCLASS_COMBO,
-        descriptors = HID_COMBO_REPORT_DESCRIPTOR
+        descriptors = ENHANCED_154_BYTE_REPORT_DESCRIPTOR
     )
 
     /**
@@ -357,8 +389,10 @@ class BluetoothHidTransport(
                 rawHidDeviceProxy = null
                 _isAppRegistered.value = false
                 activeDevice = null
+                currentPairedHost = null
                 _connectedDeviceName.value = null
                 _connectionState.value = HidConnectionState.DISCONNECTED
+                _multiHostState.value = MultiHostConnectionState.Disconnected
             }
         }
     }
@@ -373,7 +407,9 @@ class BluetoothHidTransport(
             if (!registered) {
                 _connectionState.value = HidConnectionState.DISCONNECTED
                 activeDevice = null
+                currentPairedHost = null
                 _connectedDeviceName.value = null
+                _multiHostState.value = MultiHostConnectionState.Disconnected
             } else if (pluggedDevice != null) {
                 activeDevice = pluggedDevice
                 _connectedDeviceName.value = getDeviceDisplayName(pluggedDevice)
@@ -386,6 +422,10 @@ class BluetoothHidTransport(
                     activeDevice = device
                     _connectedDeviceName.value = getDeviceDisplayName(device)
                     _connectionState.value = HidConnectionState.CONNECTED
+                    val host = currentPairedHost
+                    if (host != null && (host.address.equals(device.address, ignoreCase = true))) {
+                        _multiHostState.value = MultiHostConnectionState.Connected(host)
+                    }
                 }
                 BluetoothProfile.STATE_CONNECTING -> {
                     activeDevice = device
@@ -398,8 +438,10 @@ class BluetoothHidTransport(
                 BluetoothProfile.STATE_DISCONNECTED -> {
                     if (isSameDevice(activeDevice, device)) {
                         activeDevice = null
+                        currentPairedHost = null
                         _connectedDeviceName.value = null
                         _connectionState.value = HidConnectionState.DISCONNECTED
+                        _multiHostState.value = MultiHostConnectionState.Disconnected
                     }
                 }
             }
@@ -435,8 +477,10 @@ class BluetoothHidTransport(
         override fun onVirtualCableUnplug(device: BluetoothDevice) {
             if (isSameDevice(activeDevice, device)) {
                 activeDevice = null
+                currentPairedHost = null
                 _connectedDeviceName.value = null
                 _connectionState.value = HidConnectionState.DISCONNECTED
+                _multiHostState.value = MultiHostConnectionState.Disconnected
             }
         }
     }
@@ -498,6 +542,104 @@ class BluetoothHidTransport(
             adapter.connect(device)
         } catch (e: Exception) {
             _connectionState.value = HidConnectionState.ERROR
+            false
+        }
+    }
+
+    /**
+     * 6-Phase Atomic Multi-Host Quick-Switching Protocol.
+     * Serialized with `switchingMutex` to protect the Android Bluetooth Fluoride/GD stack.
+     *
+     * Phase 1: Zero-report flush (Report IDs 1 & 2).
+     * Phase 2: Teardown existing L2CAP link if active.
+     * Phase 3: 150ms settling guard & dead-link watchdog (up to 1000ms).
+     * Phase 4: Target L2CAP connection invocation.
+     * Phase 5: Connection await with 5000ms timeout guard.
+     * Phase 6: Active profile engagement.
+     */
+    suspend fun switchHost(target: PairedHostEntity): Boolean = switchingMutex.withLock {
+        val adapter = hidAdapter ?: return@withLock false
+        val btAdapter = bluetoothAdapter
+            ?: (context?.getSystemService(Context.BLUETOOTH_SERVICE) as? BluetoothManager)?.adapter
+            ?: BluetoothAdapter.getDefaultAdapter()
+            ?: return@withLock false
+
+        val targetDevice = try {
+            btAdapter.getRemoteDevice(target.address)
+        } catch (_: Throwable) {
+            _multiHostState.value = MultiHostConnectionState.Error("Invalid MAC address: ${target.address}", target)
+            return@withLock false
+        }
+
+        val currentHost = currentPairedHost
+        val currentDev = activeDevice
+
+        // Phase 1: Flush / Zero Key & Mouse Release
+        if (currentDev != null) {
+            try {
+                adapter.sendReport(currentDev, REPORT_ID_KEYBOARD, ByteArray(8))
+                adapter.sendReport(currentDev, REPORT_ID_MOUSE, ByteArray(4))
+            } catch (_: Throwable) {}
+        }
+
+        // Phase 2: Disconnect Current Host if connected
+        if (currentDev != null) {
+            if (currentHost != null) {
+                _multiHostState.value = MultiHostConnectionState.SwitchingHost(currentHost, target)
+            } else {
+                _multiHostState.value = MultiHostConnectionState.Disconnecting(target)
+            }
+            try {
+                adapter.disconnect(currentDev)
+            } catch (_: Throwable) {}
+
+            // Phase 3: Settling Guard & Dead-Link Watchdog (150ms settling, up to 1000ms timeout)
+            val disconnectDeadline = System.currentTimeMillis() + 1000L
+            while (activeDevice != null && System.currentTimeMillis() < disconnectDeadline) {
+                delay(50L)
+            }
+            delay(150L) // Crucial L2CAP recycle settling delay
+        }
+
+        // Phase 4: Target Connection Invocation
+        _multiHostState.value = MultiHostConnectionState.Connecting(target)
+        _connectionState.value = HidConnectionState.CONNECTING
+        _connectedDeviceName.value = target.customAlias.ifBlank { target.hostName }
+
+        val connectInitiated = try {
+            adapter.connect(targetDevice)
+        } catch (e: Exception) {
+            false
+        }
+
+        if (!connectInitiated) {
+            _multiHostState.value = MultiHostConnectionState.Error("Failed to initiate connection to ${target.hostName}", target)
+            _connectionState.value = HidConnectionState.ERROR
+            return@withLock false
+        }
+
+        // Phase 5: Connection Await & Timeout Guard (up to 5000ms)
+        val connectDeadline = System.currentTimeMillis() + 5000L
+        var connected = false
+        while (System.currentTimeMillis() < connectDeadline) {
+            if (_connectionState.value == HidConnectionState.CONNECTED && isSameDevice(activeDevice, targetDevice)) {
+                connected = true
+                break
+            }
+            if (_connectionState.value == HidConnectionState.ERROR) {
+                break
+            }
+            delay(50L)
+        }
+
+        if (connected) {
+            // Phase 6: Active Profile Engagement
+            currentPairedHost = target
+            _multiHostState.value = MultiHostConnectionState.Connected(target)
+            true
+        } else {
+            _multiHostState.value = MultiHostConnectionState.Error("Connection to ${target.hostName} timed out", target)
+            _connectionState.value = HidConnectionState.DISCONNECTED
             false
         }
     }
@@ -578,6 +720,29 @@ class BluetoothHidTransport(
     }
 
     /**
+     * Sends a 2-byte Consumer Media Control report on Report ID 3 (Page 0x0C).
+     * Transmits in Little-Endian format.
+     */
+    suspend fun sendConsumerReport(usageId: Int): Boolean {
+        val device = activeDevice ?: return false
+        val adapter = hidAdapter ?: return false
+
+        if (_connectionState.value != HidConnectionState.CONNECTED) {
+            return false
+        }
+
+        val low = (usageId and 0xFF).toByte()
+        val high = ((usageId shr 8) and 0xFF).toByte()
+        val report = byteArrayOf(low, high)
+
+        return try {
+            adapter.sendReport(device, REPORT_ID_CONSUMER, report)
+        } catch (e: Exception) {
+            false
+        }
+    }
+
+    /**
      * Convenience helper to send an all-zero key release report.
      */
     suspend fun sendKeyRelease(): Boolean {
@@ -591,19 +756,29 @@ class BluetoothHidTransport(
         return sendMouseReport(buttons = MOUSE_BUTTON_NONE, dx = 0, dy = 0, wheel = 0)
     }
 
+    /**
+     * Toggles/resets consumer media key release.
+     */
+    suspend fun sendConsumerRelease(): Boolean {
+        return sendConsumerReport(0)
+    }
+
     override suspend fun disconnect() {
         val device = activeDevice
         val adapter = hidAdapter
         if (device != null && adapter != null) {
             try {
-                // Transmit release report before tearing down connection
-                adapter.sendReport(device, 0, ByteArray(8))
+                // Transmit Release reports for Report ID 1 and Report ID 2 before tearing down connection
+                adapter.sendReport(device, REPORT_ID_KEYBOARD, ByteArray(8))
+                adapter.sendReport(device, REPORT_ID_MOUSE, ByteArray(4))
                 adapter.disconnect(device)
             } catch (_: Exception) {}
         }
         activeDevice = null
+        currentPairedHost = null
         _connectedDeviceName.value = null
         _connectionState.value = HidConnectionState.DISCONNECTED
+        _multiHostState.value = MultiHostConnectionState.Disconnected
     }
 
     override fun release() {
@@ -623,8 +798,10 @@ class BluetoothHidTransport(
         rawHidDeviceProxy = null
         _isAppRegistered.value = false
         activeDevice = null
+        currentPairedHost = null
         _connectedDeviceName.value = null
         _connectionState.value = HidConnectionState.DISCONNECTED
+        _multiHostState.value = MultiHostConnectionState.Disconnected
     }
 
     private fun isSameDevice(dev1: BluetoothDevice?, dev2: BluetoothDevice?): Boolean {
