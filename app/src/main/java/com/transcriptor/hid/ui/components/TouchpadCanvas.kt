@@ -2,18 +2,21 @@ package com.transcriptor.hid.ui.components
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.gestures.awaitEachGesture
+import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.foundation.gestures.detectDragGestures
-import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AdsClick
@@ -164,26 +167,62 @@ fun TouchpadCanvas(
                             shape = RoundedCornerShape(16.dp)
                         )
                         .pointerInput(sensitivity, isConnected) {
-                            detectTapGestures(
-                                onTap = {
-                                    if (isConnected) onLeftClick()
-                                },
-                                onDoubleTap = {
-                                    if (isConnected) onLeftClick()
-                                },
-                                onLongPress = {
-                                    if (isConnected) onRightClick()
-                                }
-                            )
-                        }
-                        .pointerInput(sensitivity, isConnected) {
-                            detectDragGestures { change: PointerInputChange, dragAmount ->
-                                change.consume()
-                                if (isConnected) {
-                                    val dx = (dragAmount.x * sensitivity).roundToInt()
-                                    val dy = (dragAmount.y * sensitivity).roundToInt()
-                                    if (dx != 0 || dy != 0) {
-                                        onMouseMove(dx, dy)
+                            awaitEachGesture {
+                                val down = awaitFirstDown(requireUnconsumed = false)
+                                val startTime = System.currentTimeMillis()
+                                var hasDragged = false
+                                var isTwoFinger = false
+                                var lastPos = down.position
+                                var totalDragDistance = 0f
+                                val touchSlop = viewConfiguration.touchSlop
+                                var longPressTriggered = false
+                                val longPressTimeout = viewConfiguration.longPressTimeoutMillis
+
+                                while (true) {
+                                    val event = awaitPointerEvent()
+                                    val pressedPointers = event.changes.filter { it.pressed }
+
+                                    if (event.changes.size >= 2 || pressedPointers.size >= 2) {
+                                        isTwoFinger = true
+                                    }
+
+                                    val elapsed = System.currentTimeMillis() - startTime
+                                    if (!hasDragged && !isTwoFinger && !longPressTriggered && elapsed >= longPressTimeout && pressedPointers.isNotEmpty()) {
+                                        if (isConnected) {
+                                            onRightClick()
+                                        }
+                                        longPressTriggered = true
+                                    }
+
+                                    if (pressedPointers.isEmpty()) {
+                                        if (!hasDragged && !longPressTriggered && elapsed < longPressTimeout) {
+                                            if (isTwoFinger) {
+                                                if (isConnected) onRightClick()
+                                            } else {
+                                                if (isConnected) onLeftClick()
+                                            }
+                                        }
+                                        break
+                                    }
+
+                                    if (!isTwoFinger) {
+                                        val primaryPointer = pressedPointers.firstOrNull { it.id == down.id } ?: pressedPointers.first()
+                                        val delta = primaryPointer.position - lastPos
+                                        totalDragDistance += delta.getDistance()
+                                        if (totalDragDistance > touchSlop) {
+                                            hasDragged = true
+                                        }
+                                        if (hasDragged) {
+                                            primaryPointer.consume()
+                                            if (isConnected) {
+                                                val dx = (delta.x * sensitivity).roundToInt()
+                                                val dy = (delta.y * sensitivity).roundToInt()
+                                                if (dx != 0 || dy != 0) {
+                                                    onMouseMove(dx, dy)
+                                                }
+                                            }
+                                        }
+                                        lastPos = primaryPointer.position
                                     }
                                 }
                             }
@@ -201,7 +240,7 @@ fun TouchpadCanvas(
                             modifier = Modifier.size(40.dp)
                         )
                         Text(
-                            text = if (isConnected) "Slide to move · Tap for left-click · Long press for right-click"
+                            text = if (isConnected) "Slide to move · Tap for left-click · 2-finger tap or long press for right-click"
                             else "Connect to host PC to use touchpad",
                             style = MaterialTheme.typography.bodySmall.copy(
                                 color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
@@ -214,8 +253,8 @@ fun TouchpadCanvas(
                 // 2. Dedicated Vertical Scroll Wheel Strip
                 Box(
                     modifier = Modifier
-                        .size(width = 44.dp, height = 0.dp)
-                        .fillMaxSize()
+                        .width(44.dp)
+                        .fillMaxHeight()
                         .clip(RoundedCornerShape(16.dp))
                         .background(Color(0xFF1A1B24))
                         .border(

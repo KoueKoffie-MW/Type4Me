@@ -31,42 +31,26 @@ data class DesktopContext(
     companion object {
         val EMPTY = DesktopContext(windowTitle = "", selectedText = "", processName = "", timestamp = 0L)
 
-        private fun extractString(json: String, vararg keys: String): String {
-            for (key in keys) {
-                val pattern = Regex(""""$key"\s*:\s*"((?:[^"\\]|\\.)*)"""")
-                val match = pattern.find(json)
-                if (match != null) {
-                    return match.groupValues[1]
-                        .replace("\\\"", "\"")
-                        .replace("\\n", "\n")
-                        .replace("\\r", "\r")
-                        .replace("\\t", "\t")
-                        .replace("\\\\", "\\")
-                }
-            }
-            return ""
-        }
-
-        private fun extractLong(json: String, key: String): Long {
-            val pattern = Regex(""""$key"\s*:\s*(\d+)""")
-            return pattern.find(json)?.groupValues?.get(1)?.toLongOrNull() ?: 0L
-        }
-
         /**
          * Parses a [DesktopContext] from a JSON string, supporting both snake_case and camelCase keys.
          */
         fun fromJson(jsonStr: String): DesktopContext {
-            val title = extractString(jsonStr, "window_title", "windowTitle")
-            val selection = extractString(jsonStr, "selected_text", "selectedText")
-            val process = extractString(jsonStr, "process_name", "processName")
-            val ts = extractLong(jsonStr, "timestamp")
+            return try {
+                val obj = JSONObject(jsonStr)
+                val title = obj.optString("window_title", obj.optString("windowTitle", ""))
+                val selection = obj.optString("selected_text", obj.optString("selectedText", ""))
+                val process = obj.optString("process_name", obj.optString("processName", ""))
+                val ts = if (obj.has("timestamp")) obj.optLong("timestamp", 0L) else 0L
 
-            return DesktopContext(
-                windowTitle = title,
-                selectedText = selection,
-                processName = process,
-                timestamp = ts
-            )
+                DesktopContext(
+                    windowTitle = title,
+                    selectedText = selection,
+                    processName = process,
+                    timestamp = ts
+                )
+            } catch (_: Exception) {
+                EMPTY
+            }
         }
     }
 }

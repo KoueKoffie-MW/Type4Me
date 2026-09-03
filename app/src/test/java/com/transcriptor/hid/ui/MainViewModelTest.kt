@@ -507,6 +507,37 @@ class MainViewModelTest {
         viewModel.onIntent(MainUiIntent.SendMouseScroll(wheel = 2))
         testDispatcher.scheduler.advanceUntilIdle()
     }
+
+    @Test
+    fun testTriggerMacroWithPromptsOpensPromptDialog() = runTest(testDispatcher) {
+        hidTransport.connectionState.value = HidConnectionState.CONNECTED
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        val macro = com.transcriptor.hid.data.db.MacroEntity(
+            id = 1L,
+            title = "Test Macro",
+            description = "A macro with prompts",
+            categoryId = 1L,
+            stepsJson = """[{"type":"prompt_variable","variableName":"commit_msg","promptLabel":"Commit Message","defaultValue":"Initial commit"}]"""
+        )
+
+        viewModel.onIntent(MainUiIntent.TriggerMacro(macro))
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        val state = viewModel.uiState.value
+        assertEquals(macro, state.activePromptMacro)
+        assertEquals(1, state.activePrompts.size)
+        assertEquals("Commit Message", state.activePrompts[0].label)
+
+        // Submit prompt answers
+        viewModel.onIntent(MainUiIntent.SubmitPromptAnswers(mapOf("Commit Message" to "feat: add feature")))
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        val postSubmitState = viewModel.uiState.value
+        assertNull(postSubmitState.activePromptMacro)
+        assertTrue(postSubmitState.activePrompts.isEmpty())
+        assertEquals("feat: add feature", keystrokeDispatcher.currentHostText.value)
+    }
 }
 
 // =============================================================================

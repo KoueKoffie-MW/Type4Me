@@ -120,9 +120,9 @@ fun PresetDialog(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                if (isEditingCustom && onDelete != null && preset != null) {
+                if (isEditingCustom && onDelete != null) {
                     TextButton(
-                        onClick = { onDelete(preset) },
+                        onClick = { onDelete(preset!!) },
                         colors = ButtonDefaults.textButtonColors(contentColor = StatusDisconnected)
                     ) {
                         Text(stringResource(R.string.btn_delete))

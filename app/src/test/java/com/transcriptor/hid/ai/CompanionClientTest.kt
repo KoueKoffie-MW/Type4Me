@@ -7,12 +7,15 @@ import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
+import org.junit.runner.RunWith
+import org.robolectric.RobolectricTestRunner
 import java.io.ByteArrayInputStream
 import java.io.IOException
 import java.io.InputStream
 import java.net.HttpURLConnection
 import java.net.URL
 
+@RunWith(RobolectricTestRunner::class)
 class CompanionClientTest {
 
     // --------------------------------------------------------------------------
@@ -85,6 +88,10 @@ class CompanionClientTest {
         val blankJson = "{}"
         val parsedBlank = DesktopContext.fromJson(blankJson)
         assertTrue(parsedBlank.isEmpty)
+
+        val invalidJson = "{ not valid json }"
+        val parsedInvalid = DesktopContext.fromJson(invalidJson)
+        assertTrue(parsedInvalid.isEmpty)
     }
 
     @Test

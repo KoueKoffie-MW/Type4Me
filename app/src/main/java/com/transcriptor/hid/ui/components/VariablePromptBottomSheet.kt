@@ -27,6 +27,8 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.Saver
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
@@ -43,7 +45,17 @@ fun VariablePromptBottomSheet(
     modifier: Modifier = Modifier,
     sheetState: SheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
 ) {
-    val promptAnswers = remember(prompts) {
+    val promptAnswers = rememberSaveable(
+        prompts,
+        saver = Saver(
+            save = { it.toMap() },
+            restore = { restored ->
+                mutableStateMapOf<String, String>().apply {
+                    putAll(restored)
+                }
+            }
+        )
+    ) {
         mutableStateMapOf<String, String>().apply {
             prompts.forEach { prompt ->
                 put(prompt.label, prompt.defaultValue)

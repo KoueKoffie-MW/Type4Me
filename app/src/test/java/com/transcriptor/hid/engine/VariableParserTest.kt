@@ -175,4 +175,31 @@ class VariableParserTest {
         val expectedBacktrack = " middle  end".codePointCount(0, " middle  end".length)
         assertThat(backtrack).isEqualTo(expectedBacktrack)
     }
+
+    @Test
+    fun testWindowsPathBackslashNotTreatedAsEscape() {
+        val template = "C:\\Windows\\System32\\{{prompt:executable|cmd.exe}}"
+        val prompts = VariableParser.extractPrompts(template)
+        assertThat(prompts).hasSize(1)
+        assertThat(prompts[0].label).isEqualTo("executable")
+        assertThat(prompts[0].defaultValue).isEqualTo("cmd.exe")
+
+        val (defaultResult, _) = VariableParser.evaluate(template, InterpolationContext())
+        assertThat(defaultResult).isEqualTo("C:\\Windows\\System32\\cmd.exe")
+
+        val answers = mapOf("executable" to "powershell.exe")
+        val (customResult, _) = VariableParser.evaluate(template, InterpolationContext(promptAnswers = answers))
+        assertThat(customResult).isEqualTo("C:\\Windows\\System32\\powershell.exe")
+    }
+
+    @Test
+    fun testPromptWithoutColonAndBlankLabels() {
+        val template = "run {{prompt}} and {{prompt:}} and {{prompt_input}}"
+        val prompts = VariableParser.extractPrompts(template)
+        assertThat(prompts).hasSize(1)
+        assertThat(prompts[0].label).isEqualTo("Input")
+
+        val (result, _) = VariableParser.evaluate(template, InterpolationContext(promptAnswers = mapOf("Input" to "test")))
+        assertThat(result).isEqualTo("run test and test and test")
+    }
 }

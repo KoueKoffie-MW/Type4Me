@@ -47,6 +47,13 @@
 | 19 | E2E Protocol & Test Suite Tiers 1-5 | 300+ simulation tests in `tests/e2e/` covering HID reports, pacing, Room DB, switching protocol, and companion | Test Track / M6 | Survey |
 | 20 | JVM Unit Test Suite Expansion | Full unit test coverage across all newly introduced modules and repository layers in `app/src/test/` | M1-M5 / M6 | Survey |
 | 21 | Clean Release Build & Shrinking | Verification that `./gradlew assembleRelease` compiles cleanly without warnings with R8 obfuscation | M6 | Survey |
+| 22 | Desktop Floating HUD & Win+H Caret Focus | Frameless, semi-transparent HUD summoned via `Ctrl+Shift+Space` with auto-focus for instant `Win+H` dictation | M7 | Desktop |
+| 23 | Needleman-Wunsch Alignment & WER Telemetry | Global DP alignment between reference teleprompter scripts and spoken ASR calculating Word Error Rate | M7 | Desktop |
+| 24 | Personal Confusion Matrix & Regional Priors | Learning speaker phonetic substitutions (e.g. `pin \rightarrow pen`) layered over SA/German English base priors | M7 | Desktop |
+| 25 | Deterministic Phonetic Trie Fast-Path | Sub-millisecond in-memory Trie executing multi-word engineering jargon repairs before LLM reasoning | M7 | Desktop |
+| 26 | 4-Tier Context Distillation & Budget Allocator | Streaming `transcript.jsonl` watcher extracting recent turns, active errors, and symbols with 500/2k/8k token caps | M7 | Desktop |
+| 27 | Gemini 3.7 Flash Agentic Modifier Matrix | Generative prompt transformation across 6 developer presets with deterministic offline rule-based fallback | M7 | Desktop |
+| 28 | Win32 Target Binding, Pinning & Injection | Foreground `HWND` tracking, 1-click Pin lock, and simulated `Ctrl+V` dispatch into active coding agent | M7 | Desktop |
 
 ## Milestones
 | # | Name | Scope | Dependencies | Status |
@@ -57,6 +64,8 @@
 | M4 | Multi-Host Quick Switching & Paired Host Registry | 154B Composite Descriptor, 6-Phase Switching Protocol, `BluetoothHidTransport` release fix, `ConnectionHeader` dropdown | M1, M2 | PLANNED |
 | M5 | Dual-Tier Zero-Install Desktop Context Companion | `tools/companion/type4me_companion.py`, `type4me_companion.ps1`, `CompanionClient`, Gemini context ingestion | None | PLANNED |
 | M6 | Final Verification: 100% E2E Pass, Tier 5 Hardening & Release Build | Full verification of Tiers 1-4 E2E tests, Tier 5 adversarial hardening, JVM unit tests, and `./gradlew assembleRelease` | M1, M2, M3, M4, M5, Test Track | PLANNED |
+| M7 | Type4Me Desktop: Windows SOTA Voice Prompt Suite & Accent Engine | `desktop/` suite: Floating HUD, Learn-My-Accent studio, Needleman-Wunsch alignment, Trie, context watcher, Gemini 3.7 Flash | None | COMPLETE |
+
 
 ## Interface Contracts
 ### Hotkey & Keystroke Dispatcher ↔ UI (`HotkeyDockBar`)

@@ -28,25 +28,22 @@ interface KeystrokeDispatcher {
 
     /**
      * Updates the host editor to match [newHypothesis] by computing the minimal LCP diff,
-     * emitting the required backspaces, and appending new characters.
+     * emitting backspaces, and typing the remaining suffix.
      *
-     * @param newHypothesis The latest speech recognition hypothesis.
-     * @param delayMs Total inter-character cycle duration in milliseconds (default 8ms).
+     * @param newHypothesis The updated speech hypothesis text.
+     * @param delayMs Total inter-character cycle duration in milliseconds.
      */
     suspend fun dispatchLiveDiff(newHypothesis: String, delayMs: Long = 8L)
 
     /**
-     * Sends a raw list of HID keystrokes with deterministic pacing.
+     * Transmits a list of raw HID keystrokes (e.g. terminal hotkeys or special commands)
+     * with deterministic key-down / key-up duty cycle pacing.
      */
     suspend fun sendRawKeyStrokes(keyStrokes: List<HidKeyStroke>, delayMs: Long = 8L)
 
     /**
-     * Streams clipboard string to host, with optional bracketed paste mode
-     * (\x1b[200~ at start, \x1b[201~ at end) for terminal/editor safety.
-     *
-     * @param clipText The clipboard string to stream to the host.
-     * @param bracketedPaste Whether to wrap with bracketed paste control codes.
-     * @param delayMs Total inter-character cycle duration in milliseconds (default 8ms).
+     * Streams clipboard text to the host PC. Optionally wraps the stream in ANSI
+     * bracketed paste mode sequences (`\x1b[200~` and `\x1b[201~`) to prevent Vim/Zsh staircase indentation.
      */
     suspend fun streamClipboardToHost(
         clipText: String,
@@ -55,7 +52,7 @@ interface KeystrokeDispatcher {
     )
 
     /**
-     * Resets the tracked host text state to empty without transmitting keystrokes.
+     * Resets the internal host text tracking state to empty string (e.g. on clear or editor wipe).
      */
     fun resetState()
 
@@ -83,10 +80,10 @@ interface KeystrokeDispatcher {
  * zero release report guard to prevent stuck keys on host OS input queues.
  */
 class DefaultKeystrokeDispatcher(
-    var translator: KeymapTranslator,
+    @Volatile var translator: KeymapTranslator,
     val deltaDiffEngine: DeltaDiffEngine = DefaultDeltaDiffEngine(),
     private val reportSender: suspend (ByteArray) -> Boolean = { true },
-    var newlineDelayMs: Long = 30L
+    @Volatile var newlineDelayMs: Long = 30L
 ) : KeystrokeDispatcher {
 
     private val mutex = Mutex()
@@ -162,7 +159,18 @@ class DefaultKeystrokeDispatcher(
     }
 
     override fun resetState() {
-        _currentHostText.value = ""
+        if (mutex.tryLock()) {
+            try {
+                _currentHostText.value = ""
+            } finally {
+                mutex.unlock()
+            }
+        } else {
+            // Mutex is held by a suspended typing operation.
+            // Do NOT block calling thread with runBlocking to prevent deadlocks on single-threaded dispatchers.
+            // MutableStateFlow.value update is thread-safe and atomic.
+            _currentHostText.value = ""
+        }
     }
 
     /**

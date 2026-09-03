@@ -1,10 +1,82 @@
-# 🏛️ Type4Me System Architecture
+# 🏛️ Type4Me Multi-Platform System Architecture
 
-**Type4Me** is a native Android application designed to bridge human speech, agentic AI prompt structuring, and pure hardware-level keystroke / mouse injection into any host workstation over Bluetooth.
+**Type4Me** provides a unified dual-platform developer suite designed to bridge human speech, regional accent adaptation, agentic AI prompt structuring, and precise developer workstation input across two complementary paradigms:
+
+1. **Mobile HID Hardware Peripheral (`app/`)**: An air-gapped, zero-host-software Android tool that emulates physical Bluetooth & USB keyboards/mice to type blind keystrokes into locked corporate laptops or headless terminals.
+2. **Desktop Windows Power Suite (`desktop/`)**: An in-situ ambient desktop environment (Electron + React + Tailwind) featuring a Spotlight-style Floating HUD, native `Win+H` focus management, the world-first "Learn-My-Accent" phonetic calibration studio, live agent transcript context streaming (`transcript.jsonl`) with token budgeting, and Gemini 3.7 Flash prompt synthesis.
 
 ---
 
-## 🧭 High-Level System Architecture
+## 🧭 Multi-Platform System Context Diagram
+
+```mermaid
+graph TB
+    subgraph MobilePeripheral ["📱 Platform 1: Mobile HID Peripheral (Android)"]
+        Gboard[Gboard Voice Typing] --> MobileCanvas[Transcription Canvas]
+        MobileCanvas --> GeminiLite[Gemini Flash-Lite Remote Rewriter]
+        GeminiLite --> Keymap[DIN 2137-1 / US QWERTY Keymap]
+        Keymap --> BtHid[Bluetooth & USB Composite HID]
+    end
+
+    subgraph DesktopSuite ["🖥️ Platform 2: Windows Desktop Power Suite"]
+        WinH[Windows Voice Typing Win+H] --> HUD[Floating HUD Overlay]
+        PushToTalk[Native Web Audio Push-to-Talk] --> LiveSTT[Gemini 3.5 Transcribe Live]
+        LiveSTT --> HUD
+        
+        TranscriptWatcher[Context Watcher: transcript.jsonl] --> TokenBudget[Token Budget Allocator]
+        AccentStudio[Learn-My-Accent Studio] --> PhoneticMatrix[Phonetic Confusion Matrix & Trie]
+        
+        HUD --> Pipeline[Multi-Pass Pipeline]
+        TokenBudget --> Pipeline
+        PhoneticMatrix --> Pipeline
+        Pipeline --> GeminiFlash[Gemini 3.7 Flash Agent Synthesizer]
+        GeminiFlash --> Win32Inject[Win32 P/Invoke SendInput]
+    end
+
+    subgraph HostWorkstation ["💻 Target Workstation Applications"]
+        BtHid -->|Hardware Scancodes| TargetEditor[Antigravity IDE / Cursor / Terminal]
+        Win32Inject -->|Simulated Paste Ctrl+V| TargetEditor
+    end
+```
+
+---
+
+## 🖥️ Platform 2: Windows Desktop Architecture (`desktop/`)
+
+Type4Me Desktop is engineered as a lightweight, low-latency Windows developer utility combining an ambient Floating HUD with a multi-panel Command Center.
+
+### 1. Dual-Mode Presentation Layer (Electron & React 19)
+- **Floating HUD (`FloatingHud.tsx`)**: A frameless, semi-transparent, `WS_EX_TOPMOST` overlay summoned via global hotkey (`Ctrl+Shift+Space` or `Alt+\``). Grabs immediate caret focus so pressing `Win+H` automatically streams voice dictation into the text buffer.
+- **Full Command Center (`CommandCenter.tsx`)**: High-density developer dashboard featuring five specialized modules:
+  1. *Prompt Studio*: Live voice transcription, template modifier selector, and 3-way split diff preview.
+  2. *Learn-My-Accent Studio*: Interactive diagnostic teleprompter with live Needleman-Wunsch alignment visualizer.
+  3. *Context Inspector*: Live file monitoring for `transcript.jsonl`, active symbol chips, and token budget slider.
+  4. *Template Matrix*: Prompt modifier template catalog with customizable system instructions.
+  5. *Settings*: Accent profile selection, Gemini API key manager, and system hotkey bindings.
+
+### 2. "Learn-My-Accent" Phonetic Calibration Subsystem
+Resolves systematic accent distortions (e.g., Afrikaans vowel raising `/ɛ/ \rightarrow /ɪ/`, final plosive devoicing `/d/ \rightarrow /t/`, German dental fricatives `/θ/ \rightarrow /s/`) without requiring manual dictionary entry:
+- **`DoubleMetaphone.ts`**: Encodes primary/alternate phonetic keys to normalize acoustic homophones.
+- **`NeedlemanWunsch.ts`**: Executes dynamic programming global alignment between ground-truth calibration scripts and raw ASR transcripts to calculate Word Error Rate (WER) and classify phonetic substitutions vs insertions/deletions.
+- **`ConfusionMatrix.ts`**: Automatically compiles speaker-specific pronunciation errors into a weighted substitution dictionary and updates the user's persistent profile.
+- **`PhoneticTrie.ts`**: In-memory multi-word prefix tree performing sub-millisecond (<1ms) deterministic phrase replacements prior to LLM reasoning.
+
+### 3. Context Distillation & Token Budgeting Subsystem
+- **`context-watcher.js`**: Non-blocking shared file watcher (`FILE_SHARE_READ | FILE_SHARE_WRITE`) monitoring active agent logs (e.g. `transcript.jsonl`) without encountering Windows file-sharing violations.
+- **`TokenBudgeter.ts`**: Extracts sliding turn windows (last 2–4 turns), active tool errors, and referenced project symbols to inject high-density context into prompt synthesis while strictly enforcing user token caps (*Lean: 500*, *Balanced: 2,000*, *Deep: 8,000* tokens).
+
+### 4. Agentic Prompt Synthesis & Modifier Subsystem
+- **`PromptModifierEngine.ts`**: Formulates structured directives across 6 developer presets (*Bug Hunter*, *Architectural Refactor*, *Gherkin Test Spec*, *Direct Surgical Diff*, *Grill-Me Trigger*, *Clean Voice*).
+- **`GeminiClient.ts`**: Dispatches context-conditioned prompts to **Gemini 3.7 Flash** (`gemini-3.7-flash`), omitting deprecated sampling parameters (`temperature`, `top_p`, `top_k`) as per August 2026 specifications, with automatic graceful fallback to the local deterministic engine when offline.
+
+### 5. Win32 Window Tracking & Simulated Injection Subsystem
+- **`win32-helper.js`**: Pure Windows PowerShell P/Invoke script capturing the foreground window handle (`HWND`), title, and process prior to HUD summoning.
+- **Target Pinning**: Allows locking prompt dispatch to a specific IDE window (e.g. Antigravity IDE) while referencing documentation or terminals on secondary displays.
+- **Simulated Keystroke Dispatch**: Restores focus to the target `HWND` and dispatches synthesized prompts via simulated `Ctrl+V` key events.
+
+---
+
+## 📱 Platform 1: Mobile HID Peripheral Architecture (`app/`)
 
 ```mermaid
 graph TB

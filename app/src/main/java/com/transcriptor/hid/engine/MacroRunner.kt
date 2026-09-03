@@ -30,6 +30,29 @@ class MacroRunner(
     private val _executionState = MutableStateFlow<MacroExecutionState>(MacroExecutionState.Idle)
     val executionState: StateFlow<MacroExecutionState> = _executionState.asStateFlow()
 
+    fun extractPrompts(stepsJson: String): List<VariableDescriptor.Prompt> {
+        val actions: List<MacroAction> = try {
+            json.decodeFromString(stepsJson)
+        } catch (_: Exception) {
+            return emptyList()
+        }
+
+        val prompts = mutableListOf<VariableDescriptor.Prompt>()
+        for (action in actions) {
+            when (action) {
+                is MacroAction.PromptVariable -> {
+                    val label = action.promptLabel.ifBlank { action.variableName }.ifBlank { "Input" }
+                    prompts.add(VariableDescriptor.Prompt(label = label, defaultValue = action.defaultValue))
+                }
+                is MacroAction.TypeString -> {
+                    prompts.addAll(VariableParser.extractPrompts(action.text))
+                }
+                else -> {}
+            }
+        }
+        return prompts.distinctBy { it.label }
+    }
+
     suspend fun execute(
         stepsJson: String,
         context: InterpolationContext = InterpolationContext()
@@ -78,6 +101,7 @@ class MacroRunner(
                     is MacroAction.PromptVariable -> {
                         val value = context.promptAnswers[action.variableName]
                             ?: context.promptAnswers[action.variableName.lowercase().replace(" ", "_")]
+                            ?: context.promptAnswers[action.promptLabel]
                             ?: action.defaultValue
                         if (value.isNotEmpty()) {
                             keystrokeDispatcher.dispatchBurst(value)

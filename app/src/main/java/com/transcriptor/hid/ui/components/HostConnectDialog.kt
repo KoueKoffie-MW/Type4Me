@@ -18,12 +18,12 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.BluetoothSearching
+import androidx.compose.material.icons.automirrored.filled.OpenInNew
 import androidx.compose.material.icons.filled.Bluetooth
 import androidx.compose.material.icons.filled.BluetoothConnected
-import androidx.compose.material.icons.filled.BluetoothSearching
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Computer
-import androidx.compose.material.icons.filled.OpenInNew
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material3.AlertDialog
@@ -224,7 +224,7 @@ fun HostConnectDialog(
                     shape = RoundedCornerShape(12.dp)
                 ) {
                     Icon(
-                        imageVector = Icons.Default.OpenInNew,
+                        imageVector = Icons.AutoMirrored.Filled.OpenInNew,
                         contentDescription = "Open Bluetooth Settings",
                         modifier = Modifier.size(16.dp)
                     )
@@ -266,7 +266,7 @@ private fun CurrentConnectionCard(
             StatusConnecting.copy(alpha = 0.12f),
             StatusConnecting.copy(alpha = 0.4f),
             "Connecting to ${connectedDeviceName ?: "Host PC"}...",
-            Icons.Default.BluetoothSearching,
+            Icons.AutoMirrored.Filled.BluetoothSearching,
             StatusConnecting
         )
         HidConnectionState.DISCONNECTED -> Quintuple(

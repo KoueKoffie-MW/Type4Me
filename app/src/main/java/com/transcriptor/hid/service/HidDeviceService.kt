@@ -18,9 +18,12 @@ import android.os.PowerManager
 import com.transcriptor.hid.TranscriptorApp
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.withContext
 
 /**
  * Interface abstraction for partial wake lock management.
@@ -138,24 +141,28 @@ class HidDeviceController(
 
     fun destroy() {
         // Emergency all-zero release report to prevent stuck host modifier keys (Edge Case E4)
-        coroutineScope.launch {
-            try {
-                transport?.sendKeyboardReport(ByteArray(8))
-            } catch (_: Throwable) {}
-            try {
-                transport?.release()
-            } catch (_: Throwable) {}
-        }
+        try {
+            runBlocking {
+                withContext(NonCancellable) {
+                    transport?.sendKeyboardReport(ByteArray(8))
+                }
+            }
+        } catch (_: Throwable) {}
+        try {
+            transport?.release()
+        } catch (_: Throwable) {}
         releaseWakeLock()
         coroutineScope.cancel()
     }
 
     fun onTaskRemoved() {
-        coroutineScope.launch {
-            try {
-                transport?.sendKeyboardReport(ByteArray(8))
-            } catch (_: Throwable) {}
-        }
+        try {
+            runBlocking {
+                withContext(NonCancellable) {
+                    transport?.sendKeyboardReport(ByteArray(8))
+                }
+            }
+        } catch (_: Throwable) {}
     }
 }
 
@@ -250,7 +257,7 @@ class HidDeviceService : Service() {
      */
     fun connectToDeviceAddress(address: String): Boolean {
         val bluetoothManager = getSystemService(Context.BLUETOOTH_SERVICE) as? BluetoothManager
-        val adapter = bluetoothManager?.adapter ?: BluetoothAdapter.getDefaultAdapter() ?: return false
+        val adapter = bluetoothManager?.adapter ?: return false
         val device: BluetoothDevice = try {
             adapter.getRemoteDevice(address)
         } catch (_: Exception) {

@@ -40,7 +40,7 @@ interface KeymapTranslator {
             newlineMode: NewlineSubmissionMode = NewlineSubmissionMode.TERMINAL_ENTER
         ): KeymapTranslator {
             return when (layout) {
-                KeyLayout.US_QWERTY -> UsQwertyKeymap()
+                KeyLayout.US_QWERTY -> UsQwertyKeymap(newlineMode = newlineMode)
                 KeyLayout.GERMAN_QWERTZ -> GermanQwertzKeymap(newlineMode = newlineMode)
             }
         }

@@ -4,25 +4,41 @@
 
 # 🎙️ Type4Me
 
-**Hardware-Level Speech-to-Keystroke & Touchpad Mouse Bridge with AI Prompt Engineering for Android**
+**Dual-Platform Developer Suite: Mobile Hardware HID Bridge + Windows AI Voice Prompt & Accent Engine**
 
 [![Download APK](https://img.shields.io/badge/Download%20APK-v1.0.0%20(4.1%20MB)-success.svg?logo=android&logoColor=white)](release/Type4Me-v1.0.0.apk)
-[![Platform](https://img.shields.io/badge/Platform-Android%2014%20%7C%2015-3DDC84.svg?logo=android&logoColor=white)](https://android.com)
-[![Protocol](https://img.shields.io/badge/Protocol-Bluetooth%20%7C%20USB%20HID-0082FC.svg?logo=bluetooth&logoColor=white)](https://www.bluetooth.com)
-[![AI Engine](https://img.shields.io/badge/AI%20Engine-Google%20Gemini%20Flash--Lite-8E75FF.svg?logo=google&logoColor=white)](https://deepmind.google/technologies/gemini/)
-[![Tests](https://img.shields.io/badge/Tests-436%20Passing-brightgreen.svg)](tests/)
+[![Desktop Suite](https://img.shields.io/badge/Desktop%20Suite-Windows%2010%2F11%20(Tauri%20%7C%20Electron)-0078D4.svg?logo=windows&logoColor=white)](desktop/)
+[![Platform](https://img.shields.io/badge/Platform-Android%2014%20%7C%2015%20%2B%20Windows-3DDC84.svg?logo=android&logoColor=white)](https://android.com)
+[![Protocol](https://img.shields.io/badge/Protocol-Bluetooth%20%7C%20USB%20HID%20%7C%20Win32-0082FC.svg?logo=bluetooth&logoColor=white)](https://www.bluetooth.com)
+[![AI Engine](https://img.shields.io/badge/AI%20Engine-Gemini%203.7%20Flash%20%26%203.5%20Transcribe-8E75FF.svg?logo=google&logoColor=white)](https://deepmind.google/technologies/gemini/)
+[![Tests](https://img.shields.io/badge/Tests-446%20Passing-brightgreen.svg)](tests/)
 [![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](LICENSE)
 
-*Speak naturally, navigate effortlessly. Structure stream-of-consciousness dictation into high-agency AI prompts via Gemini Flash-Lite and stream pure hardware keystrokes & mouse movements directly into any PC, Mac, or Linux workstation with zero host-side drivers.*
+*Speak naturally, navigate effortlessly. Transform stream-of-consciousness developer dictation into high-agency AI coding directives, repair regional accent distortions via Needleman-Wunsch alignment, ingest active agent transcripts with token budgeting, and stream pure keystrokes or simulated Win32 input directly into any workstation.*
 
 </div>
 
 ---
 
+## 🌟 Dual-Platform Ecosystem
+
+Type4Me is architected across two complementary developer workflows:
+
+1. **📱 Mobile Hardware HID Bridge (`app/`)**: An air-gapped Android hardware peripheral that emulates a physical Bluetooth & USB keyboard/mouse, typing blind electrical scancodes into corporate virtual desktops, remote SSH terminals, and locked workstations with zero host software.
+2. **🖥️ Windows Desktop Power Suite (`desktop/`)**: An ambient developer overlay (Electron + React + Tailwind) featuring a Spotlight-style Floating HUD (`Ctrl+Shift+Space`), native `Win+H` focus management, the world-first "Learn-My-Accent" calibration studio, live `transcript.jsonl` context watching with token budgeting, and Gemini 3.7 Flash agentic prompt synthesis.
+
+---
+
 ## 🌟 Key Highlights
 
-- ⌨️ **Pure Hardware Bluetooth & USB HID**: Your PC, Mac, or Linux workstation detects your phone as a genuine physical Bluetooth/USB keyboard and mouse. Zero host-side background software, companion daemons, or browser extensions needed.
-- 🔒 **Zero Host Screen Exposure & Absolute Privacy**: Unlike screen-scraping AI tools or OS-level overlays that record your screen and send confidential data to third parties, Type4Me operates purely as a blind hardware input device. It has **zero access to your computer's screen, open windows, or host filesystem**.
+- 🖥️ **Spotlight-Style Windows HUD & Win+H Caret Focus**: Summon a frameless, semi-transparent prompt HUD with `Ctrl+Shift+Space` or `Alt+\``; caret focus is set instantly so pressing `Win+H` streams native voice dictation directly into the box.
+- 🇿🇦 **"Learn-My-Accent" Calibration Studio**: Curated teleprompter passages targeting tricky phoneme transitions (Afrikaans vowel shifts `/ɛ/ \rightarrow /ɪ/`, final plosive devoicing `/d/ \rightarrow /t/`, German dental fricatives `/θ/ \rightarrow /s/`, and developer jargon like *Simulink*, *Gherkin*, *quaternions*). Dynamically aligns via Needleman-Wunsch DP and learns your personal confusion matrix.
+- ⚡ **Sub-Millisecond Deterministic Phonetic Trie**: Pre-loaded with South African English, German English, and General ESL priors to instantly repair jargon misrecognitions before LLM reasoning.
+- 📚 **Agent Transcript Watcher & Token Budgeting**: Non-blocking shared file monitoring for `transcript.jsonl` and git diffs, with sliding turn windows (last 2–4 turns), active diagnostic error traps, and strict token caps (*Lean: 500*, *Balanced: 2,000*, *Deep: 8,000* tokens).
+- 🤖 **Agentic Prompt Modifier Matrix**: 6 specialized developer templates (*Bug Hunter*, *Architectural Refactor*, *Gherkin Test Spec*, *Direct Surgical Diff*, *Grill-Me Trigger*, *Clean Voice*) powered by **Gemini 3.7 Flash** (GA August 2026) with offline deterministic fallback.
+- 🪟 **Target Window Pinning & Simulated Injection**: 1-click Pin lock enables reading external docs or web consoles on secondary monitors while always auto-pasting synthesized prompts back into your pinned Antigravity IDE.
+- ⌨️ **Pure Hardware Bluetooth & USB HID (Mobile)**: Your workstation detects your Android device as a genuine physical Bluetooth/USB keyboard and mouse. Zero host background daemons required.
+- 🔒 **Zero Host Screen Exposure & Absolute Privacy**: Operates without screen-scraping or telemetry hooks, keeping sensitive codebases, classified CAD models, and private screens completely unexposed.
 - 🚀 **Voice Typing for ANYTHING**: Because it operates strictly at the hardware HID layer, Type4Me brings instantaneous voice typing and AI prompt structuring to **any software on earth** — including locked-down corporate virtual desktops (Citrix, RDP, VMware), air-gapped terminal consoles (SSH, vim, tmux), IDEs (VS Code, Android Studio, Cursor), CAD/Simscape/MATLAB environments, and game engines.
 - 🖱️ **Tactile Touchpad & Mouse Combo**: Switch instantly to trackpad mode to navigate your workstation screen. Features 1-finger smooth cursor glide, 1-finger tap (left click), long-press / 2-finger tap (right click), dedicated vertical scroll wheel strip, and adjustable speed multiplier ($0.5\times$ to $3.0\times$).
 - 🤖 **Agentic Prompt Engineering**: Dictate unstructured, stream-of-consciousness thoughts and instantly transform them into structured, high-agency prompts (*Context, Objective, Constraints & Rules, Required Output Format*) tailored for autonomous AI agents like **Antigravity**, **Claude Code**, **ChatGPT**, and **Hermes**.

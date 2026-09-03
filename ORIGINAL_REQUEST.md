@@ -88,5 +88,63 @@ Provide a lightweight zero-install desktop companion script (`tools/companion/ty
 - [ ] Snippets Pad renders preloaded templates and dispatches 1-tap keystrokes over Bluetooth HID.
 - [ ] Clipboard Streamer converts mobile clipboard into cleanly paced host keystrokes.
 - [ ] Multi-Host switcher displays bonded hosts and allows switching.
-- [ ] Desktop companion script is runnable standalone with zero dependencies.
 
+
+## Follow-up — 2026-09-03T20:46:28Z
+
+Comprehensive defect audit and remediation of the current Type4Me v1.4.0 codebase, combined with deep architectural design and prototyping of next-generation capabilities (Air-Gapped Screen Lens OCR, Direct Push-to-Talk Audio Pipeline, Bluetooth Connection Watchdog, and Gyroscope Air Mouse).
+
+Working directory: c:\Users\Jan\Documents\antigravity\nifty-galileo
+Integrity mode: development
+
+## Core Directives & SOTA Research Rule
+- **Live State-of-the-Art Research**: Actively search the web and inspect current (2026) Android platform documentation, CameraX / MLKit OCR capabilities, Bluetooth HID profile specifications, and modern developer tooling. Do NOT rely on static assumptions or dated paradigms.
+
+---
+
+## Requirements
+
+### R1. Deep Codebase Defect Discovery & Immediate Remediation (Bug Hunter Team)
+Exhaustively audit the active codebase (`app/src/main/java`, Compose UI, Room DB 2.6, HID Services, and Companion Client) to identify and fix:
+- Any UI clipping, recomposition lags, or orientation layout flaws across Portrait/Landscape.
+- Potential race conditions or deadlocks in `KeystrokeDispatcher`, `MacroRunner`, and `BluetoothHidTransport`.
+- Corner cases in `VariableParser` (unescaped brackets, nested variables, null safety).
+- Any unhandled exceptions or connection leak risks in `CompanionClient` and `BluetoothHidDeviceAdapter`.
+- Fix any deprecation warnings or lint defects identified during compilation.
+
+### R2. Air-Gapped Optical Vision Context (Screen Lens / OCR Snapshot)
+Design and prototype an in-app "Scan Screen" Camera Lens for 100% zero-host air-gapped context ingestion:
+- Lightweight CameraX preview sheet / dialog that captures monitor screen regions (terminal errors, code diffs, logs).
+- On-device MLKit Text Recognition (OCR) or direct Gemini Vision multimodal pass to extract stack traces and code snippets without any host-side software.
+- Seamless injection of extracted text into `transcriptionText` or background context for Gemini prompt rewriting.
+
+### R3. Continuous In-App Audio & Push-To-Talk Pipeline
+Research and design a direct in-app voice capture pipeline bypassing Gboard silence timeouts:
+- Direct `AudioRecord` / `SpeechRecognizer` integration with a dedicated Push-to-Talk (hold-to-speak) floating action trigger.
+- Audio level / waveform visualization during dictation.
+- Roadmap for local on-device Whisper / LiteRT Speech ASR running on the phone NPU.
+
+### R4. Bluetooth L2CAP Connection Watchdog & Fast Auto-Reconnect
+Design an autonomous connection resilience watchdog:
+- Periodic heartbeat monitoring and active state detection for host sleep/wake cycles.
+- Fast auto-reconnect state machine recovering lost L2CAP HID channels in <1.5s when the PC wakes up, without manual user intervention.
+
+### R5. Gyroscope Air Mouse & Presentation Pointer Exploration
+Investigate feasibility of using the phone's IMU (gyroscope + accelerometer) as a 3D air mouse / laser pointer:
+- Mathematical fusion mapping pitch/yaw angular velocity to relative HID mouse deltas (`dX`, `dY`).
+- Ergonomic trigger button (hold to aim, release to freeze) and click triggers.
+
+---
+
+## Deliverables & Acceptance Criteria
+
+### Build & Test Health
+- [ ] `./gradlew test` executes cleanly and 100% of JVM unit tests pass with zero regressions.
+- [ ] `python tests/e2e/run_e2e_tests.py` passes 100% across Tiers 1-5.
+- [ ] `./gradlew assembleRelease` compiles cleanly without warnings or errors.
+
+### Defect Remediation & Quality
+- [ ] All newly discovered bugs, race conditions, and deprecations in R1 are documented, fixed, and covered by automated regression tests.
+
+### Architectural & Prototype Deliverables
+- [ ] Comprehensive architectural report published to `docs/NEXT_GEN_INNOVATIONS_AND_AUDIT.md` covering R1-R5 with concrete CameraX/OCR pipelines, Watchdog state machines, and Air Mouse sensor math.

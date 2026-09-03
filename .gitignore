@@ -20,3 +20,6 @@ captures/
 __pycache__/
 *.pyc
 *.pyo
+desktop/node_modules/
+desktop/dist/
+desktop/release/

@@ -233,4 +233,23 @@ class KeystrokeDispatcherTest {
         assertEquals(HidConstants.MOD_LSHIFT, strokesChat[0].modifierMask)
         assertEquals(HidConstants.KEY_ENTER, strokesChat[0].usageId)
     }
+
+    @Test
+    fun testResetStateClearsHostTextSynchronously() = runBlocking {
+        dispatcher.dispatchBurst("Reset test", delayMs = 0L)
+        assertEquals("Reset test", dispatcher.currentHostText.value)
+
+        dispatcher.resetState()
+        assertEquals("", dispatcher.currentHostText.value)
+    }
+
+    @Test
+    fun testDynamicTranslatorAndNewlineDelayUpdate() = runBlocking {
+        dispatcher.newlineDelayMs = 50L
+        assertEquals(50L, dispatcher.newlineDelayMs)
+
+        val newTranslator = UsQwertyKeymap(newlineMode = NewlineSubmissionMode.CHAT_SOFT_ENTER)
+        dispatcher.translator = newTranslator
+        assertEquals(newTranslator, dispatcher.translator)
+    }
 }

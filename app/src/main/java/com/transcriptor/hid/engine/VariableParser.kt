@@ -14,8 +14,8 @@ import java.util.UUID
  */
 object VariableParser {
 
-    // Matches unescaped {{ ... }} tags (negative lookbehind for backslash)
-    private val VARIABLE_REGEX = Regex("""(?<!\\)\{\{([^}]+)\}\}""")
+    // Matches unescaped {{ ... }} tags (negative lookbehind for backslash, except when backslash is part of a file path)
+    private val VARIABLE_REGEX = Regex("""(?:(?<!\\)|(?<=[a-zA-Z0-9_.:/\\()\-+@~%$\[\]]\\))\{\{([^}]+)\}\}""")
 
     /**
      * Parses raw template string into a structured list of tokens.
@@ -79,15 +79,19 @@ object VariableParser {
             expression.equals("uuid", ignoreCase = true) -> VariableDescriptor.Uuid
             expression.equals("short_uuid", ignoreCase = true) -> VariableDescriptor.ShortUuid
             expression.equals("clipboard", ignoreCase = true) -> VariableDescriptor.Clipboard
-            expression.equals("prompt_input", ignoreCase = true) -> VariableDescriptor.Prompt(label = "Input")
+            expression.equals("prompt_input", ignoreCase = true) || expression.equals("prompt", ignoreCase = true) ->
+                VariableDescriptor.Prompt(label = "Input")
             expression.startsWith("prompt:", ignoreCase = true) -> {
                 val body = expression.substringAfter("prompt:").trim()
                 val delimiter = if (body.contains("|")) "|" else if (body.contains(":")) ":" else null
                 if (delimiter != null) {
                     val parts = body.split(delimiter, limit = 2)
-                    VariableDescriptor.Prompt(label = parts[0].trim(), defaultValue = parts[1].trim())
+                    val label = parts[0].trim().ifBlank { "Input" }
+                    val defaultVal = parts[1].trim()
+                    VariableDescriptor.Prompt(label = label, defaultValue = defaultVal)
                 } else {
-                    VariableDescriptor.Prompt(label = body)
+                    val label = body.ifBlank { "Input" }
+                    VariableDescriptor.Prompt(label = label)
                 }
             }
             expression.equals("cursor", ignoreCase = true) -> VariableDescriptor.Cursor

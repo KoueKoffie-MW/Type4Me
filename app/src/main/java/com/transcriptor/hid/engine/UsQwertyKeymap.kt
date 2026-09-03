@@ -7,7 +7,9 @@ import java.text.Normalizer
  * Covers all 95 printable ASCII characters (0x20..0x7E), standard control keys,
  * and smart punctuation transliteration with NFC Unicode normalization.
  */
-class UsQwertyKeymap : KeymapTranslator {
+class UsQwertyKeymap(
+    override var newlineMode: NewlineSubmissionMode = NewlineSubmissionMode.TERMINAL_ENTER
+) : KeymapTranslator {
 
     override val layout: KeyLayout = KeyLayout.US_QWERTY
 
@@ -16,7 +18,11 @@ class UsQwertyKeymap : KeymapTranslator {
             // Control characters
             '\b' -> HidKeyStroke(HidConstants.MOD_NONE, HidConstants.KEY_BACKSPACE)
             '\t' -> HidKeyStroke(HidConstants.MOD_NONE, HidConstants.KEY_TAB)
-            '\n', '\r' -> HidKeyStroke(HidConstants.MOD_LSHIFT, HidConstants.KEY_ENTER) // Soft-enter (Shift+Enter) prevents premature agent submission
+            '\u001b' -> HidKeyStroke(HidConstants.MOD_NONE, HidConstants.KEY_ESCAPE)
+            '\n', '\r' -> when (newlineMode) {
+                NewlineSubmissionMode.TERMINAL_ENTER -> HidKeyStroke(HidConstants.MOD_NONE, HidConstants.KEY_ENTER)
+                NewlineSubmissionMode.CHAT_SOFT_ENTER -> HidKeyStroke(HidConstants.MOD_LSHIFT, HidConstants.KEY_ENTER)
+            }
 
             // Space & Punctuation
             ' ' -> HidKeyStroke(HidConstants.MOD_NONE, HidConstants.KEY_SPACE)

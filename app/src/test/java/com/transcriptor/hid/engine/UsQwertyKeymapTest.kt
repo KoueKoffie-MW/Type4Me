@@ -33,11 +33,24 @@ class UsQwertyKeymapTest {
         assertEquals(HidConstants.MOD_NONE, tab[0].modifierMask)
         assertEquals(HidConstants.KEY_TAB, tab[0].usageId)
 
-        // Enter / Newline (Soft Enter: Shift + Enter)
-        val nl = keymap.translateChar('\n')
-        assertEquals(1, nl.size)
-        assertEquals(HidConstants.MOD_LSHIFT, nl[0].modifierMask)
-        assertEquals(HidConstants.KEY_ENTER, nl[0].usageId)
+        // Enter / Newline (Terminal Enter vs Chat Soft Enter)
+        val nlTerminal = keymap.translateChar('\n')
+        assertEquals(1, nlTerminal.size)
+        assertEquals(HidConstants.MOD_NONE, nlTerminal[0].modifierMask)
+        assertEquals(HidConstants.KEY_ENTER, nlTerminal[0].usageId)
+
+        keymap.newlineMode = NewlineSubmissionMode.CHAT_SOFT_ENTER
+        val nlSoft = keymap.translateChar('\n')
+        assertEquals(1, nlSoft.size)
+        assertEquals(HidConstants.MOD_LSHIFT, nlSoft[0].modifierMask)
+        assertEquals(HidConstants.KEY_ENTER, nlSoft[0].usageId)
+        keymap.newlineMode = NewlineSubmissionMode.TERMINAL_ENTER
+
+        // Escape (\u001b)
+        val esc = keymap.translateChar('\u001b')
+        assertEquals(1, esc.size)
+        assertEquals(HidConstants.MOD_NONE, esc[0].modifierMask)
+        assertEquals(HidConstants.KEY_ESCAPE, esc[0].usageId)
 
         // Space
         val sp = keymap.translateChar(' ')

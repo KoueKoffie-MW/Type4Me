@@ -15,6 +15,7 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import java.util.concurrent.Executor
@@ -275,14 +276,46 @@ class DefaultBluetoothHidDeviceAdapter(
         return hidDevice.registerApp(sdpSettings, inQosSettings, outQosSettings, executor, nativeCallback)
     }
 
-    override fun unregisterApp(): Boolean = hidDevice.unregisterApp()
-    override fun sendReport(device: BluetoothDevice, id: Int, data: ByteArray): Boolean = hidDevice.sendReport(device, id, data)
-    override fun replyReport(device: BluetoothDevice, type: Byte, id: Byte, data: ByteArray): Boolean = hidDevice.replyReport(device, type, id, data)
-    override fun reportError(device: BluetoothDevice, error: Byte): Boolean = hidDevice.reportError(device, error)
-    override fun connect(device: BluetoothDevice): Boolean = hidDevice.connect(device)
-    override fun disconnect(device: BluetoothDevice): Boolean = hidDevice.disconnect(device)
-    override fun getConnectedDevices(): List<BluetoothDevice> = hidDevice.connectedDevices
-    override fun getConnectionState(device: BluetoothDevice): Int = hidDevice.getConnectionState(device)
+    override fun unregisterApp(): Boolean = try {
+        hidDevice.unregisterApp()
+    } catch (_: SecurityException) {
+        false
+    }
+    override fun sendReport(device: BluetoothDevice, id: Int, data: ByteArray): Boolean = try {
+        hidDevice.sendReport(device, id, data)
+    } catch (_: SecurityException) {
+        false
+    }
+    override fun replyReport(device: BluetoothDevice, type: Byte, id: Byte, data: ByteArray): Boolean = try {
+        hidDevice.replyReport(device, type, id, data)
+    } catch (_: SecurityException) {
+        false
+    }
+    override fun reportError(device: BluetoothDevice, error: Byte): Boolean = try {
+        hidDevice.reportError(device, error)
+    } catch (_: SecurityException) {
+        false
+    }
+    override fun connect(device: BluetoothDevice): Boolean = try {
+        hidDevice.connect(device)
+    } catch (_: SecurityException) {
+        false
+    }
+    override fun disconnect(device: BluetoothDevice): Boolean = try {
+        hidDevice.disconnect(device)
+    } catch (_: SecurityException) {
+        false
+    }
+    override fun getConnectedDevices(): List<BluetoothDevice> = try {
+        hidDevice.connectedDevices
+    } catch (_: SecurityException) {
+        emptyList()
+    }
+    override fun getConnectionState(device: BluetoothDevice): Int = try {
+        hidDevice.getConnectionState(device)
+    } catch (_: SecurityException) {
+        BluetoothProfile.STATE_DISCONNECTED
+    }
 }
 
 /**
@@ -561,7 +594,6 @@ class BluetoothHidTransport(
         val adapter = hidAdapter ?: return@withLock false
         val btAdapter = bluetoothAdapter
             ?: (context?.getSystemService(Context.BLUETOOTH_SERVICE) as? BluetoothManager)?.adapter
-            ?: BluetoothAdapter.getDefaultAdapter()
             ?: return@withLock false
 
         val targetDevice = try {
@@ -597,6 +629,9 @@ class BluetoothHidTransport(
             val disconnectDeadline = System.currentTimeMillis() + 1000L
             while (activeDevice != null && System.currentTimeMillis() < disconnectDeadline) {
                 delay(50L)
+            }
+            if (activeDevice != null) {
+                activeDevice = null
             }
             delay(150L) // Crucial L2CAP recycle settling delay
         }
@@ -638,6 +673,12 @@ class BluetoothHidTransport(
             _multiHostState.value = MultiHostConnectionState.Connected(target)
             true
         } else {
+            try {
+                adapter.disconnect(targetDevice)
+            } catch (_: Throwable) {}
+            if (activeDevice != null && isSameDevice(activeDevice, targetDevice)) {
+                activeDevice = null
+            }
             _multiHostState.value = MultiHostConnectionState.Error("Connection to ${target.hostName} timed out", target)
             _connectionState.value = HidConnectionState.DISCONNECTED
             false
@@ -650,7 +691,6 @@ class BluetoothHidTransport(
     fun getBondedDevices(): List<BluetoothDevice> {
         val adapter = bluetoothAdapter
             ?: (context?.getSystemService(Context.BLUETOOTH_SERVICE) as? BluetoothManager)?.adapter
-            ?: BluetoothAdapter.getDefaultAdapter()
         return try {
             adapter?.bondedDevices?.toList() ?: emptyList()
         } catch (_: SecurityException) {
@@ -666,7 +706,6 @@ class BluetoothHidTransport(
     fun connectDeviceByAddress(address: String): Boolean {
         val adapter = bluetoothAdapter
             ?: (context?.getSystemService(Context.BLUETOOTH_SERVICE) as? BluetoothManager)?.adapter
-            ?: BluetoothAdapter.getDefaultAdapter()
             ?: return false
         val device = try {
             adapter.getRemoteDevice(address)
@@ -763,7 +802,11 @@ class BluetoothHidTransport(
         return sendConsumerReport(0)
     }
 
-    override suspend fun disconnect() {
+    override suspend fun disconnect() = switchingMutex.withLock {
+        disconnectInternal()
+    }
+
+    private fun disconnectInternal() {
         val device = activeDevice
         val adapter = hidAdapter
         if (device != null && adapter != null) {
@@ -782,6 +825,23 @@ class BluetoothHidTransport(
     }
 
     override fun release() {
+        if (switchingMutex.tryLock()) {
+            try {
+                releaseInternal()
+            } finally {
+                switchingMutex.unlock()
+            }
+        } else {
+            runBlocking {
+                switchingMutex.withLock {
+                    releaseInternal()
+                }
+            }
+        }
+    }
+
+    private fun releaseInternal() {
+        disconnectInternal()
         try {
             hidAdapter?.unregisterApp()
         } catch (_: Exception) {}

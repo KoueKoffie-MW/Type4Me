@@ -66,8 +66,12 @@ fun TranscriptorTheme(
         SideEffect {
             val window = (view.context as? Activity)?.window
             if (window != null) {
-                window.statusBarColor = OledBlack.toArgb()
-                window.navigationBarColor = OledBlack.toArgb()
+                if (Build.VERSION.SDK_INT < Build.VERSION_CODES.VANILLA_ICE_CREAM) {
+                    @Suppress("DEPRECATION")
+                    window.statusBarColor = OledBlack.toArgb()
+                    @Suppress("DEPRECATION")
+                    window.navigationBarColor = OledBlack.toArgb()
+                }
                 WindowCompat.getInsetsController(window, view).isAppearanceLightStatusBars = false
                 WindowCompat.getInsetsController(window, view).isAppearanceLightNavigationBars = false
             }

@@ -753,13 +753,7 @@ open class MainViewModel(
         if (snippet != null) {
             dispatchSnippetExecution(snippet, answers)
         } else if (macro != null) {
-            val context = InterpolationContext(
-                promptAnswers = answers,
-                hostOs = _uiState.value.activeHost?.hostOs?.name ?: "WINDOWS"
-            )
-            scope.launch {
-                macroRunner.execute(macro.stepsJson, context)
-            }
+            dispatchMacroExecution(macro, answers)
         }
     }
 
@@ -817,7 +811,27 @@ open class MainViewModel(
             return
         }
 
+        val prompts = macroRunner.extractPrompts(macro.stepsJson)
+        if (prompts.isNotEmpty()) {
+            _uiState.update {
+                it.copy(
+                    activePromptMacro = macro,
+                    activePrompts = prompts
+                )
+            }
+        } else {
+            dispatchMacroExecution(macro, emptyMap())
+        }
+    }
+
+    private fun dispatchMacroExecution(macro: MacroEntity, promptAnswers: Map<String, String>) {
+        if (_uiState.value.connectionState != HidConnectionState.CONNECTED) {
+            _uiState.update { it.copy(errorMessage = "Host PC is not connected.") }
+            return
+        }
+
         val context = InterpolationContext(
+            promptAnswers = promptAnswers,
             hostOs = _uiState.value.activeHost?.hostOs?.name ?: "WINDOWS"
         )
 

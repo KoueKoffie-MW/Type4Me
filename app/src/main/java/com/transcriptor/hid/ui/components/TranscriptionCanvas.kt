@@ -45,6 +45,10 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.input.nestedscroll.NestedScrollConnection
+import androidx.compose.ui.input.nestedscroll.NestedScrollSource
+import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.focus.onFocusEvent
 import kotlinx.coroutines.launch
@@ -90,6 +94,23 @@ fun TranscriptionCanvas(
         }
     }
 
+    val nestedScrollConnection = remember {
+        object : NestedScrollConnection {
+            override fun onPreScroll(available: Offset, source: NestedScrollSource): Offset {
+                val delta = available.y
+                if (delta > 0 && innerScrollState.canScrollBackward) {
+                    val consumed = innerScrollState.dispatchRawDelta(-delta)
+                    return Offset(0f, -consumed)
+                }
+                if (delta < 0 && innerScrollState.canScrollForward) {
+                    val consumed = innerScrollState.dispatchRawDelta(-delta)
+                    return Offset(0f, -consumed)
+                }
+                return Offset.Zero
+            }
+        }
+    }
+
     Column(
         modifier = modifier.fillMaxWidth(),
         verticalArrangement = Arrangement.spacedBy(10.dp)
@@ -110,6 +131,7 @@ fun TranscriptionCanvas(
             Box(
                 modifier = Modifier
                     .fillMaxSize()
+                    .nestedScroll(nestedScrollConnection)
                     .bringIntoViewRequester(bringIntoViewRequester)
                     .padding(16.dp)
             ) {
