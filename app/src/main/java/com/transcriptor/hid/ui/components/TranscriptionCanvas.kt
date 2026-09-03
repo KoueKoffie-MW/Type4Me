@@ -72,6 +72,12 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import com.transcriptor.hid.ui.theme.TextPrimary
 
+import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.material.icons.filled.CameraAlt
+import androidx.compose.material.icons.filled.Mic
+import com.transcriptor.hid.ui.theme.TextPrimary
+
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun TranscriptionCanvas(
@@ -81,6 +87,8 @@ fun TranscriptionCanvas(
     onSendClick: () -> Unit,
     onClearClick: () -> Unit,
     onUndoClick: () -> Unit,
+    onScanScreenClick: () -> Unit = {},
+    onPttChange: (Boolean) -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     val innerScrollState = rememberScrollState()
@@ -190,6 +198,85 @@ fun TranscriptionCanvas(
                         )
                         .padding(horizontal = 4.dp, vertical = 2.dp)
                 )
+            }
+        }
+
+        // Innovation Action Row: Scan Screen OCR & Push-to-Talk Voice
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            // Scan Screen OCR Button
+            OutlinedButton(
+                onClick = onScanScreenClick,
+                modifier = Modifier
+                    .weight(1f)
+                    .defaultMinSize(minHeight = 44.dp),
+                shape = RoundedCornerShape(12.dp),
+                colors = ButtonDefaults.outlinedButtonColors(
+                    contentColor = ElectricViolet
+                )
+            ) {
+                Icon(
+                    imageVector = Icons.Default.CameraAlt,
+                    contentDescription = "Scan Screen OCR",
+                    modifier = Modifier.size(18.dp)
+                )
+                Spacer(modifier = Modifier.width(6.dp))
+                Text(
+                    text = "Scan Screen",
+                    style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.SemiBold)
+                )
+            }
+
+            // Push-to-Talk (Hold-to-Speak) Button
+            Surface(
+                modifier = Modifier
+                    .weight(1.2f)
+                    .defaultMinSize(minHeight = 44.dp)
+                    .pointerInput(Unit) {
+                        detectTapGestures(
+                            onPress = {
+                                onPttChange(true)
+                                tryAwaitRelease()
+                                onPttChange(false)
+                            }
+                        )
+                    },
+                shape = RoundedCornerShape(12.dp),
+                color = if (state.isPttRecording) ElectricViolet.copy(alpha = 0.25f) else MaterialTheme.colorScheme.surfaceContainerHigh,
+                border = androidx.compose.foundation.BorderStroke(
+                    1.dp,
+                    if (state.isPttRecording) ElectricViolet else MaterialTheme.colorScheme.outlineVariant
+                )
+            ) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 12.dp, vertical = 8.dp),
+                    horizontalArrangement = Arrangement.Center,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Mic,
+                        contentDescription = "Push to Talk",
+                        modifier = Modifier.size(18.dp),
+                        tint = if (state.isPttRecording) ElectricViolet else MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(
+                        text = if (state.isPttRecording) "Listening..." else "Hold to Talk",
+                        style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.SemiBold),
+                        color = if (state.isPttRecording) ElectricViolet else MaterialTheme.colorScheme.onSurface
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    AudioWaveformVisualizer(
+                        audioLevel = state.audioLevel,
+                        isRecording = state.isPttRecording,
+                        maxHeight = 18.dp
+                    )
+                }
             }
         }
 

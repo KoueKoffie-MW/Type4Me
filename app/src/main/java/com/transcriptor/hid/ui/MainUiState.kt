@@ -75,7 +75,18 @@ data class MainUiState(
 
     // M4: Multi-Host Management
     val pairedHosts: List<PairedHostEntity> = emptyList(),
-    val activeHost: PairedHostEntity? = null
+    val activeHost: PairedHostEntity? = null,
+
+    // Next-Gen Innovations (R2-R5)
+    val isScreenLensOpen: Boolean = false,
+    val capturedScreenContext: String? = null,
+    val isPttRecording: Boolean = false,
+    val audioLevel: Float = 0f,
+    val isWatchdogReconnecting: Boolean = false,
+    val watchdogAttempts: Int = 0,
+    val isAirMouseAiming: Boolean = false,
+    val isAirMouseAvailable: Boolean = true,
+    val airMouseSensitivity: Float = 1.2f
 ) {
     /**
      * Calculated word count for dictation telemetry.

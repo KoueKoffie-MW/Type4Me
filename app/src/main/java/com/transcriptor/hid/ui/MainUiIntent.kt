@@ -243,4 +243,41 @@ sealed interface MainUiIntent {
      * Triggers 6-Phase Atomic host switching to a target paired host.
      */
     data class SwitchHost(val target: PairedHostEntity) : MainUiIntent
+
+    // --- Next-Gen Innovation Intents (R2-R5) ---
+
+    /**
+     * Toggles the Optical Screen Lens camera OCR dialog.
+     */
+    data class SetScreenLensOpen(val isOpen: Boolean) : MainUiIntent
+
+    /**
+     * Injects extracted Screen Lens OCR context into the prompt or canvas.
+     */
+    data class ApplyScreenLensContext(val extractedText: String) : MainUiIntent
+
+    /**
+     * Controls Continuous Audio & Push-To-Talk recording.
+     */
+    data class SetPttRecording(val isRecording: Boolean) : MainUiIntent
+
+    /**
+     * Updates live microphone RMS audio level for waveform visualizer.
+     */
+    data class UpdateAudioLevel(val level: Float) : MainUiIntent
+
+    /**
+     * Controls Gyroscope Air Mouse aiming state (Hold-to-Aim).
+     */
+    data class SetAirMouseAiming(val isAiming: Boolean) : MainUiIntent
+
+    /**
+     * Sends an Air Mouse click event (0x01 = left, 0x02 = right).
+     */
+    data class AirMouseClick(val buttonMask: Byte) : MainUiIntent
+
+    /**
+     * Updates Gyroscope Air Mouse sensitivity.
+     */
+    data class SetAirMouseSensitivity(val sensitivity: Float) : MainUiIntent
 }

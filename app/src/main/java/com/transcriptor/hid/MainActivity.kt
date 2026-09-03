@@ -17,6 +17,10 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.lifecycleScope
 import kotlinx.coroutines.launch
+import com.transcriptor.hid.audio.PttAudioEngine
+import com.transcriptor.hid.motion.GyroAirMouseEngine
+import com.transcriptor.hid.service.BluetoothConnectionWatchdog
+import com.transcriptor.hid.service.BluetoothHidTransport
 import com.transcriptor.hid.service.HidDeviceService
 import com.transcriptor.hid.ui.MainScreen
 import com.transcriptor.hid.ui.MainViewModel
@@ -44,6 +48,10 @@ class MainActivity : ComponentActivity() {
             @Suppress("UNCHECKED_CAST")
             override fun <T : ViewModel> create(modelClass: Class<T>): T {
                 val app = application as TranscriptorApp
+                val pttEngine = PttAudioEngine(app, lifecycleScope)
+                val gyroEngine = GyroAirMouseEngine(app, app.hidTransport, lifecycleScope)
+                val btTransport = app.hidTransport as? BluetoothHidTransport
+                val watchdog = btTransport?.let { BluetoothConnectionWatchdog(it, lifecycleScope) }
                 return MainViewModel(
                     settingsRepository = app.settingsRepository,
                     presetRepository = app.presetRepository,
@@ -52,7 +60,10 @@ class MainActivity : ComponentActivity() {
                     hidTransport = app.hidTransport,
                     snippetRepository = app.snippetRepository,
                     macroRepository = app.macroRepository,
-                    pairedHostRepository = app.pairedHostRepository
+                    pairedHostRepository = app.pairedHostRepository,
+                    pttAudioEngine = pttEngine,
+                    gyroAirMouseEngine = gyroEngine,
+                    connectionWatchdog = watchdog
                 ) as T
             }
         }

@@ -69,6 +69,8 @@ import kotlin.math.roundToInt
  * - Dedicated Scroll Strip (Right edge) & Physical Click Bars (Bottom).
  * - Sensitivity adjustment slider.
  */
+import androidx.compose.foundation.gestures.detectTapGestures
+
 @Composable
 fun TouchpadCanvas(
     isConnected: Boolean,
@@ -77,6 +79,9 @@ fun TouchpadCanvas(
     onRightClick: () -> Unit,
     onMiddleClick: () -> Unit,
     onMouseScroll: (deltaY: Int) -> Unit,
+    isAirMouseAiming: Boolean = false,
+    isAirMouseAvailable: Boolean = true,
+    onAirMouseAimChange: (Boolean) -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     var sensitivity by remember { mutableFloatStateOf(1.2f) }
@@ -293,6 +298,49 @@ fun TouchpadCanvas(
                                 fontSize = 8.sp,
                                 fontWeight = FontWeight.Bold
                             )
+                        )
+                    }
+                }
+            }
+
+            // Gyroscope Air Mouse (Hold to Aim) Surface
+            if (isAirMouseAvailable) {
+                Surface(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(44.dp)
+                        .pointerInput(Unit) {
+                            detectTapGestures(
+                                onPress = {
+                                    onAirMouseAimChange(true)
+                                    tryAwaitRelease()
+                                    onAirMouseAimChange(false)
+                                }
+                            )
+                        },
+                    shape = RoundedCornerShape(12.dp),
+                    color = if (isAirMouseAiming) ElectricViolet.copy(alpha = 0.25f) else MaterialTheme.colorScheme.surfaceVariant,
+                    border = androidx.compose.foundation.BorderStroke(
+                        1.dp,
+                        if (isAirMouseAiming) ElectricViolet else MaterialTheme.colorScheme.outlineVariant
+                    )
+                ) {
+                    Row(
+                        modifier = Modifier.fillMaxSize(),
+                        horizontalArrangement = Arrangement.Center,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.AdsClick,
+                            contentDescription = "Air Mouse",
+                            tint = if (isAirMouseAiming) ElectricViolet else MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.size(20.dp)
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(
+                            text = if (isAirMouseAiming) "🎯 Aiming Cursor via Gyroscope (Active)" else "🎯 Hold to Aim (Air Mouse)",
+                            style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold),
+                            color = if (isAirMouseAiming) ElectricViolet else MaterialTheme.colorScheme.onSurface
                         )
                     }
                 }

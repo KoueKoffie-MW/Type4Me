@@ -39,6 +39,7 @@ import com.transcriptor.hid.ui.components.HostConnectDialog
 import com.transcriptor.hid.ui.components.HotkeyDockBar
 import com.transcriptor.hid.ui.components.PresetDialog
 import com.transcriptor.hid.ui.components.PresetSelector
+import com.transcriptor.hid.ui.components.ScreenLensDialog
 import com.transcriptor.hid.ui.components.SettingsDialog
 import com.transcriptor.hid.ui.components.SnippetsPadScreen
 import com.transcriptor.hid.ui.components.TouchpadCanvas
@@ -87,6 +88,8 @@ fun MainScreenContent(
                 pairedHosts = state.pairedHosts,
                 activeHost = state.activeHost,
                 onSwitchHost = { onIntent(MainUiIntent.SwitchHost(it)) },
+                isWatchdogReconnecting = state.isWatchdogReconnecting,
+                watchdogAttempts = state.watchdogAttempts,
                 onPairHostClick = { onIntent(MainUiIntent.OpenHostConnectDialog) },
                 onSettingsClick = { onIntent(MainUiIntent.OpenSettings) }
             )
@@ -215,6 +218,8 @@ fun MainScreenContent(
                             onSendClick = { onIntent(MainUiIntent.SendBufferedKeystrokes) },
                             onClearClick = { onIntent(MainUiIntent.ClearText) },
                             onUndoClick = { onIntent(MainUiIntent.UndoText) },
+                            onScanScreenClick = { onIntent(MainUiIntent.SetScreenLensOpen(true)) },
+                            onPttChange = { onIntent(MainUiIntent.SetPttRecording(it)) },
                             modifier = Modifier.fillMaxWidth()
                         )
                     }
@@ -245,6 +250,9 @@ fun MainScreenContent(
                         onRightClick = { onIntent(MainUiIntent.SendMouseRightClick) },
                         onMiddleClick = { onIntent(MainUiIntent.SendMouseMiddleClick) },
                         onMouseScroll = { wheel -> onIntent(MainUiIntent.SendMouseScroll(wheel)) },
+                        isAirMouseAiming = state.isAirMouseAiming,
+                        isAirMouseAvailable = state.isAirMouseAvailable,
+                        onAirMouseAimChange = { onIntent(MainUiIntent.SetAirMouseAiming(it)) },
                         modifier = if (isLandscape) {
                             Modifier.fillMaxWidth().heightIn(min = 320.dp)
                         } else {
@@ -317,6 +325,14 @@ fun MainScreenContent(
             onOpenBluetoothSettings = onOpenBluetoothSettings,
             onRefreshPairedDevices = { onIntent(MainUiIntent.OpenHostConnectDialog) },
             onDismiss = { onIntent(MainUiIntent.CloseHostConnectDialog) }
+        )
+    }
+
+    // Air-Gapped Optical Screen Lens OCR Dialog
+    if (state.isScreenLensOpen) {
+        ScreenLensDialog(
+            onDismiss = { onIntent(MainUiIntent.SetScreenLensOpen(false)) },
+            onTextExtracted = { text -> onIntent(MainUiIntent.ApplyScreenLensContext(text)) }
         )
     }
 }

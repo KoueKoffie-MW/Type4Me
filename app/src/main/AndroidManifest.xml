@@ -44,6 +44,13 @@
     <!-- Battery optimization exemption for background typing -->
     <uses-permission android:name="android.permission.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS" />
 
+    <!-- Optical Screen Lens & OCR Snapshot (Zero-Host Context Ingestion) -->
+    <uses-permission android:name="android.permission.CAMERA" />
+    <uses-feature android:name="android.hardware.camera" android:required="false" />
+
+    <!-- Continuous Audio & Push-To-Talk -->
+    <uses-permission android:name="android.permission.RECORD_AUDIO" />
+
     <application
         android:name=".TranscriptorApp"
         android:allowBackup="true"

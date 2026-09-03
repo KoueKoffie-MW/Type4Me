@@ -71,6 +71,8 @@ fun ConnectionHeader(
     pairedHosts: List<PairedHostEntity> = emptyList(),
     activeHost: PairedHostEntity? = null,
     onSwitchHost: ((PairedHostEntity) -> Unit)? = null,
+    isWatchdogReconnecting: Boolean = false,
+    watchdogAttempts: Int = 0,
     modifier: Modifier = Modifier
 ) {
     var isHostDropdownOpen by remember { mutableStateOf(false) }
@@ -123,6 +125,8 @@ fun ConnectionHeader(
                             connectionState = connectionState,
                             connectedDeviceName = activeHost?.customAlias?.ifBlank { activeHost.hostName } ?: connectedDeviceName,
                             activeHost = activeHost,
+                            isWatchdogReconnecting = isWatchdogReconnecting,
+                            watchdogAttempts = watchdogAttempts,
                             onBadgeClick = {
                                 if (pairedHosts.size > 1 && onSwitchHost != null) {
                                     isHostDropdownOpen = true
@@ -237,11 +241,19 @@ fun ConnectionStatusBadge(
     connectionState: HidConnectionState,
     connectedDeviceName: String?,
     activeHost: PairedHostEntity? = null,
+    isWatchdogReconnecting: Boolean = false,
+    watchdogAttempts: Int = 0,
     onBadgeClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    val (statusColor, statusBg, statusText, statusIcon) = when (connectionState) {
-        HidConnectionState.CONNECTED -> {
+    val (statusColor, statusBg, statusText, statusIcon) = when {
+        isWatchdogReconnecting -> Quadruple(
+            StatusConnecting,
+            StatusConnecting.copy(alpha = 0.2f),
+            "⚡ Auto-Reconnecting ($watchdogAttempts/3)...",
+            Icons.AutoMirrored.Filled.BluetoothSearching
+        )
+        connectionState == HidConnectionState.CONNECTED -> {
             val name = connectedDeviceName ?: stringResource(R.string.host_pc_default)
             Quadruple(
                 StatusConnected,
@@ -250,19 +262,19 @@ fun ConnectionStatusBadge(
                 Icons.Default.BluetoothConnected
             )
         }
-        HidConnectionState.CONNECTING -> Quadruple(
+        connectionState == HidConnectionState.CONNECTING -> Quadruple(
             StatusConnecting,
             StatusConnecting.copy(alpha = 0.15f),
             stringResource(R.string.status_connecting),
             Icons.AutoMirrored.Filled.BluetoothSearching
         )
-        HidConnectionState.DISCONNECTED -> Quadruple(
+        connectionState == HidConnectionState.DISCONNECTED -> Quadruple(
             StatusDisconnected,
             StatusDisconnected.copy(alpha = 0.15f),
             stringResource(R.string.status_disconnected),
             Icons.Default.Bluetooth
         )
-        HidConnectionState.ERROR -> Quadruple(
+        else -> Quadruple(
             StatusError,
             StatusError.copy(alpha = 0.15f),
             stringResource(R.string.status_error),

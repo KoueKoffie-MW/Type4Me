@@ -23,11 +23,15 @@ import com.transcriptor.hid.engine.KeymapTranslator
 import com.transcriptor.hid.engine.KeystrokeDispatcher
 import com.transcriptor.hid.engine.MacroRunner
 import com.transcriptor.hid.engine.VariableParser
+import com.transcriptor.hid.audio.PttAudioEngine
+import com.transcriptor.hid.motion.GyroAirMouseEngine
+import com.transcriptor.hid.service.BluetoothConnectionWatchdog
 import com.transcriptor.hid.service.BluetoothHidTransport
 import com.transcriptor.hid.service.HidConnectionState
 import com.transcriptor.hid.service.HidTransport
 import com.transcriptor.hid.service.MultiHostConnectionState
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -36,7 +40,7 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
 /**
- * MVI ViewModel orchestrating single-screen UI state, user intents, AI rewriting,
+ * Single-screen ViewModel coordinating UI state, voice typing interception,
  * HID transmission, variable interpolation, macro execution, and multi-host switching.
  */
 open class MainViewModel(
@@ -48,7 +52,10 @@ open class MainViewModel(
     val snippetRepository: SnippetRepository? = null,
     val macroRepository: MacroRepository? = null,
     val pairedHostRepository: PairedHostRepository? = null,
-    externalScope: CoroutineScope? = null
+    externalScope: CoroutineScope? = null,
+    val pttAudioEngine: PttAudioEngine? = null,
+    val gyroAirMouseEngine: GyroAirMouseEngine? = null,
+    val connectionWatchdog: BluetoothConnectionWatchdog? = null
 ) : ViewModel() {
 
     // Use injected scope or default to ViewModel's viewModelScope
@@ -227,6 +234,45 @@ open class MainViewModel(
                 }
             }
         }
+
+        pttAudioEngine?.let { engine ->
+            scope.launch {
+                engine.audioLevel.collect { level ->
+                    _uiState.update { it.copy(audioLevel = level) }
+                }
+            }
+            scope.launch {
+                engine.isRecording.collect { rec ->
+                    _uiState.update { it.copy(isPttRecording = rec) }
+                }
+            }
+        }
+
+        connectionWatchdog?.let { watchdog ->
+            scope.launch {
+                watchdog.isReconnecting.collect { recon ->
+                    _uiState.update { it.copy(isWatchdogReconnecting = recon) }
+                }
+            }
+            scope.launch {
+                watchdog.reconnectAttempts.collect { att ->
+                    _uiState.update { it.copy(watchdogAttempts = att) }
+                }
+            }
+        }
+
+        gyroAirMouseEngine?.let { mouse ->
+            scope.launch {
+                mouse.isAiming.collect { aiming ->
+                    _uiState.update { it.copy(isAirMouseAiming = aiming) }
+                }
+            }
+            scope.launch {
+                mouse.isAvailable.collect { avail ->
+                    _uiState.update { it.copy(isAirMouseAvailable = avail) }
+                }
+            }
+        }
     }
 
     private fun filterSnippets(
@@ -318,6 +364,15 @@ open class MainViewModel(
 
             // Milestone 4 Intents
             is MainUiIntent.SwitchHost -> handleSwitchHost(intent.target)
+
+            // Next-Gen Innovation Intents (R2-R5)
+            is MainUiIntent.SetScreenLensOpen -> _uiState.update { it.copy(isScreenLensOpen = intent.isOpen) }
+            is MainUiIntent.ApplyScreenLensContext -> handleApplyScreenLensContext(intent.extractedText)
+            is MainUiIntent.SetPttRecording -> handleSetPttRecording(intent.isRecording)
+            is MainUiIntent.UpdateAudioLevel -> _uiState.update { it.copy(audioLevel = intent.level) }
+            is MainUiIntent.SetAirMouseAiming -> handleSetAirMouseAiming(intent.isAiming)
+            is MainUiIntent.AirMouseClick -> handleAirMouseClick(intent.buttonMask)
+            is MainUiIntent.SetAirMouseSensitivity -> handleSetAirMouseSensitivity(intent.sensitivity)
         }
     }
 
@@ -889,5 +944,64 @@ open class MainViewModel(
             }
             loadPairedDevices()
         }
+    }
+
+    // --- Next-Gen Innovation Handlers (R2-R5) ---
+
+    private fun handleApplyScreenLensContext(extractedText: String) {
+        if (extractedText.isBlank()) return
+        _uiState.update { current ->
+            val formatted = "```\n$extractedText\n```\n"
+            val updated = if (current.transcriptionText.isBlank()) {
+                formatted
+            } else {
+                "${current.transcriptionText.trimEnd()}\n\n$formatted"
+            }
+            current.copy(
+                transcriptionText = updated,
+                capturedScreenContext = extractedText,
+                isScreenLensOpen = false
+            )
+        }
+    }
+
+    private fun handleSetPttRecording(isRecording: Boolean) {
+        _uiState.update { it.copy(isPttRecording = isRecording) }
+        if (isRecording) {
+            pttAudioEngine?.startRecording(
+                languageCode = if (_uiState.value.spokenLanguage.equals("Afrikaans", ignoreCase = true)) "af-ZA" else "en-US"
+            ) { hypothesis ->
+                _uiState.update { current ->
+                    current.copy(transcriptionText = hypothesis)
+                }
+            }
+        } else {
+            pttAudioEngine?.stopRecording()
+        }
+    }
+
+    private fun handleSetAirMouseAiming(isAiming: Boolean) {
+        _uiState.update { it.copy(isAirMouseAiming = isAiming) }
+        if (isAiming) {
+            gyroAirMouseEngine?.startAiming()
+        } else {
+            gyroAirMouseEngine?.stopAiming()
+        }
+    }
+
+    private fun handleAirMouseClick(buttonMask: Byte) {
+        gyroAirMouseEngine?.sendClick(buttonMask)
+    }
+
+    private fun handleSetAirMouseSensitivity(sensitivity: Float) {
+        _uiState.update { it.copy(airMouseSensitivity = sensitivity) }
+        gyroAirMouseEngine?.sensitivity = sensitivity
+    }
+
+    override fun onCleared() {
+        super.onCleared()
+        pttAudioEngine?.destroy()
+        gyroAirMouseEngine?.destroy()
+        connectionWatchdog?.cancel()
     }
 }

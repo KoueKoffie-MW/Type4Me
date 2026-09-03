@@ -369,6 +369,8 @@ class BluetoothHidTransport(
     var activeDevice: BluetoothDevice? = null
         private set
 
+    var onConnectionLostListener: ((BluetoothDevice) -> Unit)? = null
+
     private var hidAdapter: BluetoothHidDeviceAdapter? = null
     private var rawHidDeviceProxy: BluetoothProfile? = null
     private var currentInputReport = ByteArray(8)
@@ -469,12 +471,14 @@ class BluetoothHidTransport(
                     _connectionState.value = HidConnectionState.DISCONNECTED
                 }
                 BluetoothProfile.STATE_DISCONNECTED -> {
+                    val lostDevice = activeDevice
                     if (isSameDevice(activeDevice, device)) {
                         activeDevice = null
                         currentPairedHost = null
                         _connectedDeviceName.value = null
                         _connectionState.value = HidConnectionState.DISCONNECTED
                         _multiHostState.value = MultiHostConnectionState.Disconnected
+                        onConnectionLostListener?.invoke(lostDevice ?: device)
                     }
                 }
             }

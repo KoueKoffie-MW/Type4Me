@@ -6,8 +6,8 @@
 
 **Dual-Platform Developer Suite: Mobile Hardware HID Bridge + Windows AI Voice Prompt & Accent Engine**
 
-[![Download APK](https://img.shields.io/badge/Download%20APK-v1.0.0%20(4.1%20MB)-success.svg?logo=android&logoColor=white)](release/Type4Me-v1.0.0.apk)
-[![Desktop Suite](https://img.shields.io/badge/Desktop%20Suite-Windows%2010%2F11%20(Tauri%20%7C%20Electron)-0078D4.svg?logo=windows&logoColor=white)](desktop/)
+[![Download APK](https://img.shields.io/badge/Download%20APK-v1.0.0%20(4.9%20MB)-success.svg?logo=android&logoColor=white)](release/Type4Me-v1.0.0.apk)
+[![Download Windows App](https://img.shields.io/badge/Download%20Windows%20App-v1.0.0%20(96%20MB)-0078D4.svg?logo=windows&logoColor=white)](release/Type4Me-Desktop-v1.0.0.exe)
 [![Platform](https://img.shields.io/badge/Platform-Android%2014%20%7C%2015%20%2B%20Windows-3DDC84.svg?logo=android&logoColor=white)](https://android.com)
 [![Protocol](https://img.shields.io/badge/Protocol-Bluetooth%20%7C%20USB%20HID%20%7C%20Win32-0082FC.svg?logo=bluetooth&logoColor=white)](https://www.bluetooth.com)
 [![AI Engine](https://img.shields.io/badge/AI%20Engine-Gemini%203.7%20Flash%20%26%203.5%20Transcribe-8E75FF.svg?logo=google&logoColor=white)](https://deepmind.google/technologies/gemini/)

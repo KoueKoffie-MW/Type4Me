@@ -12,6 +12,8 @@ securityCrypto = "1.1.0-alpha06"
 googleGenAi = "0.1.1"
 coroutines = "1.9.0"
 serialization = "1.7.3"
+camerax = "1.4.1"
+mlkitText = "16.0.1"
 
 # Testing
 junit4 = "4.13.2"
@@ -37,6 +39,13 @@ androidx-compose-ui-tooling = { group = "androidx.compose.ui", name = "ui-toolin
 androidx-compose-ui-tooling-preview = { group = "androidx.compose.ui", name = "ui-tooling-preview" }
 androidx-compose-material3 = { group = "androidx.compose.material3", name = "material3" }
 androidx-compose-material-icons-extended = { group = "androidx.compose.material", name = "material-icons-extended" }
+
+# CameraX & ML Kit Vision
+androidx-camera-core = { group = "androidx.camera", name = "camera-core", version.ref = "camerax" }
+androidx-camera-camera2 = { group = "androidx.camera", name = "camera-camera2", version.ref = "camerax" }
+androidx-camera-lifecycle = { group = "androidx.camera", name = "camera-lifecycle", version.ref = "camerax" }
+androidx-camera-view = { group = "androidx.camera", name = "camera-view", version.ref = "camerax" }
+mlkit-text-recognition = { group = "com.google.mlkit", name = "text-recognition", version.ref = "mlkitText" }
 
 # Persistence
 androidx-room-runtime = { group = "androidx.room", name = "room-runtime", version.ref = "room" }
